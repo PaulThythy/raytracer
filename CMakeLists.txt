@@ -21,7 +21,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 ## GLFW ##########
 ##################
 
-set(GLFW_DIR ${PROJECT_SOURCE_DIR}/lib/glfw)
+set(GLFW_DIR ${PROJECT_SOURCE_DIR}/libs/glfw)
 option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
 option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
 option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
@@ -34,7 +34,7 @@ include_directories(${GLFW_DIR}/include)
 ##################
 ## dearImGui #####
 ##################
-set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/lib/imgui)
+set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/libs/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 
 
