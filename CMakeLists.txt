@@ -17,6 +17,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wfatal-errors -Werror -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 
+file(GLOB sources src/*.cpp)
+
 ##################
 ## GLFW ##########
 ##################
@@ -34,15 +36,22 @@ include_directories(${GLFW_DIR}/include)
 ##################
 ## dearImGui #####
 ##################
+
 set(IMGUI_DIR ${PROJECT_SOURCE_DIR}/libs/imgui)
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
+
+
+##################
+## Vulkan ########
+##################
+
+find_package(Vulkan REQUIRED)
 
 
 ##################
 ## libraries #####
 ##################
 
-find_package(Vulkan REQUIRED)
 set(LIBRARIES "glfw;Vulkan::Vulkan")
 
 # Use vulkan headers from glfw:
