@@ -12,5 +12,4 @@ if [ $? -eq 0 ]; then
 	./build/*/raytracer
 else
     echo "Compilation failed. Please check the error messages."
-fi 
-read
+fi
