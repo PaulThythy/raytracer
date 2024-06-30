@@ -1,7 +1,7 @@
 #include "Renderer.h"
 
 #include <stdio.h>          
-#include <stdlib.h>      
+#include <stdlib.h>   
 
 void static glfw_error_callback(int error, const char* description)
 {
@@ -23,7 +23,7 @@ void Renderer::init() {
 		return ;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    m_window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+Vulkan example", nullptr, nullptr);
+    m_window = glfwCreateWindow(1280, 720, "Raytracer", nullptr, nullptr);
     if (!glfwVulkanSupported())
     {
         printf("GLFW: Vulkan Not Supported\n");
@@ -51,11 +51,12 @@ void Renderer::init() {
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    m_io = ImGui::GetIO(); (void)m_io;
-    m_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    m_io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    m_io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-    m_io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+    m_io = io;
     //io.ConfigViewportsNoAutoMerge = true;
     //io.ConfigViewportsNoTaskBarIcon = true;
 
@@ -114,6 +115,7 @@ void Renderer::mainLoop() {
 
         //render UI
         ImGui::Begin("Hello, world!");
+        ImGui::ShowDemoWindow();
         ImGui::End();
 
         // Rendering
