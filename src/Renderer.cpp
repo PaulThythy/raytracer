@@ -2,6 +2,7 @@
 
 #include <stdio.h>          
 #include <stdlib.h>   
+#include <iostream>
 
 void static glfw_error_callback(int error, const char* description)
 {
@@ -112,6 +113,12 @@ void Renderer::mainLoop() {
         ImGui_ImplVulkan_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
+
+        int width, height;
+        glfwGetWindowSize(m_window, &width, &height);
+
+        // Print the window size to the console
+        std::cout << "Window size: " << width << "x" << height << std::endl;
 
         //render UI
         ImGui::Begin("Hello, world!");
