@@ -3,6 +3,13 @@
 #include <stdio.h>          
 #include <stdlib.h>   
 #include <iostream>
+#include <vector>
+
+#include <glm/glm.hpp>
+
+#include "Scene.h"
+#include "Camera.h"
+#include "math/Sphere.h"
 
 void static glfw_error_callback(int error, const char* description)
 {
@@ -94,7 +101,24 @@ void Renderer::init() {
 }
 
 void Renderer::mainLoop() {
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+    ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
+
+    glm::vec3 position(0.0f, 0.0f, 0.0f);
+    glm::vec3 lookAt(1.0f, 0.0f, 0.0f);
+    glm::vec3 up(0.0f, 0.0f, 1.0f);
+    double fov = 90.0;
+    double aspectRatio = 16.0 / 9.0;
+    double aperture = 0.1;
+    double focusDist = 1.0;
+    Camera camera(position, lookAt, up, fov, aspectRatio, aperture, focusDist);
+    Scene::Scene scene(camera);
+
+    scene.addObject(std::make_shared<Sphere::Sphere>(glm::vec3(5, 0, 0), 4));
+
+    //image buffer
+    int imageWidth = 1280;
+    int imageHeight = 720;
+    std::vector<glm::vec3> image(imageWidth * imageHeight);
 
     while (!glfwWindowShouldClose(m_window)) {
         glfwPollEvents();
@@ -118,7 +142,34 @@ void Renderer::mainLoop() {
         glfwGetWindowSize(m_window, &width, &height);
 
         // Print the window size to the console
-        std::cout << "Window size: " << width << "x" << height << std::endl;
+        //std::cout << "Window size: " << width << "x" << height << std::endl;
+
+
+        //raytracing
+        for (int j = 0; j < imageHeight; ++j) {
+            for (int i = 0; i < imageWidth; ++i) {
+                float u = float(i) / (imageWidth - 1);
+                float v = float(j) / (imageHeight - 1);
+
+                Ray::Ray ray = camera.getRay(u, v);
+
+                float t = std::numeric_limits<float>::max();
+                std::shared_ptr<Hitable::HitableObject> hitObject;
+                glm::vec3 color(0.0f, 0.0f, 0.0f);
+
+                if (scene.intersect(ray, t, hitObject)) {
+                    // Compute color based on the intersection
+                    color = glm::vec3(1.0f, 0.0f, 0.0f); // Rouge pour une intersection avec la sphère
+                }
+
+                image[j * imageWidth + i] = color;
+                g_MainWindowData.ClearValue.color.float32[0] = color.r;
+                g_MainWindowData.ClearValue.color.float32[1] = color.g;
+                g_MainWindowData.ClearValue.color.float32[2] = color.b;
+                g_MainWindowData.ClearValue.color.float32[3] = 1.0f; // Opacité complète
+
+            }
+        }
 
         //render UI
         ImGui::Begin("Hello, world!");
@@ -129,10 +180,10 @@ void Renderer::mainLoop() {
         ImGui::Render();
         ImDrawData* main_draw_data = ImGui::GetDrawData();
         const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f || main_draw_data->DisplaySize.y <= 0.0f);
-        g_MainWindowData.ClearValue.color.float32[0] = clear_color.x * clear_color.w;
+        /*g_MainWindowData.ClearValue.color.float32[0] = clear_color.x * clear_color.w;
         g_MainWindowData.ClearValue.color.float32[1] = clear_color.y * clear_color.w;
         g_MainWindowData.ClearValue.color.float32[2] = clear_color.z * clear_color.w;
-        g_MainWindowData.ClearValue.color.float32[3] = clear_color.w;
+        g_MainWindowData.ClearValue.color.float32[3] = clear_color.w;*/
         if (!main_is_minimized)
             FrameRender(&g_MainWindowData, main_draw_data);
 
