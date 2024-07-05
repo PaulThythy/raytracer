@@ -101,7 +101,7 @@ void Renderer::init() {
 }
 
 void Renderer::mainLoop() {
-    ImVec4 clear_color = ImVec4(0.0f, 0.0f, 0.0f, 1.00f);
+    ImVec4 clear_color = ImVec4(0.0f, 1.0f, 0.0f, 1.00f);
 
     glm::vec3 position(0.0f, 0.0f, 0.0f);
     glm::vec3 lookAt(1.0f, 0.0f, 0.0f);
@@ -146,7 +146,7 @@ void Renderer::mainLoop() {
 
 
         //raytracing
-        for (int j = 0; j < imageHeight; ++j) {
+        /*for (int j = 0; j < imageHeight; ++j) {
             for (int i = 0; i < imageWidth; ++i) {
                 float u = float(i) / (imageWidth - 1);
                 float v = float(j) / (imageHeight - 1);
@@ -169,7 +169,24 @@ void Renderer::mainLoop() {
                 g_MainWindowData.ClearValue.color.float32[3] = 1.0f; // Opacité complète
 
             }
+        }*/
+
+        //color pixels in a viewport window
+        /*ImGui::Begin("Viewport");
+        ImVec2 pos = ImGui::GetCursorScreenPos();
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                if (y % 2 == 0 && x % 2 == 0) {
+                    ImU32 col = IM_COL32(255, 0, 0, 255);
+                    draw_list->AddRectFilled(ImVec2(pos.x + x, pos.y + y), ImVec2(pos.x + x + 1, pos.y + y + 1), col);
+                }
+            }
         }
+        ImGui::End();*/
+
+        //color pixels in the main window
+
 
         //render UI
         ImGui::Begin("Hello, world!");
@@ -186,6 +203,8 @@ void Renderer::mainLoop() {
         g_MainWindowData.ClearValue.color.float32[3] = clear_color.w;*/
         if (!main_is_minimized)
             FrameRender(&g_MainWindowData, main_draw_data);
+
+
 
         // Update and Render additional Platform Windows
         if (m_io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
