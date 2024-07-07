@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "HitableObject.h"
 
+#include <memory>
 #include <vector>
 #include <iostream>
 

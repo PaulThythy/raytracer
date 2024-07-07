@@ -62,8 +62,10 @@ void Renderer::init() {
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+#ifdef _WIN32 || _WIN64
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
     io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+#endif
     m_io = io;
     //io.ConfigViewportsNoAutoMerge = true;
     //io.ConfigViewportsNoTaskBarIcon = true;
@@ -159,14 +161,14 @@ void Renderer::mainLoop() {
 
                 if (scene.intersect(ray, t, hitObject)) {
                     // Compute color based on the intersection
-                    color = glm::vec3(1.0f, 0.0f, 0.0f); // Rouge pour une intersection avec la sphère
+                    color = glm::vec3(1.0f, 0.0f, 0.0f); // Rouge pour une intersection avec la sphï¿½re
                 }
 
                 image[j * imageWidth + i] = color;
                 g_MainWindowData.ClearValue.color.float32[0] = color.r;
                 g_MainWindowData.ClearValue.color.float32[1] = color.g;
                 g_MainWindowData.ClearValue.color.float32[2] = color.b;
-                g_MainWindowData.ClearValue.color.float32[3] = 1.0f; // Opacité complète
+                g_MainWindowData.ClearValue.color.float32[3] = 1.0f; // Opacitï¿½ complï¿½te
 
             }
         }*/
