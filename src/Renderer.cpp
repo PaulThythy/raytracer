@@ -10,6 +10,7 @@
 #include "Scene.h"
 #include "Camera.h"
 #include "math/Sphere.h"
+#include "globals/globals.cpp"
 
 void static glfw_error_callback(int error, const char* description)
 {
@@ -31,7 +32,7 @@ void Renderer::init() {
 		return ;
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    m_window = glfwCreateWindow(1280, 720, "Raytracer", nullptr, nullptr);
+    m_window = glfwCreateWindow(Config::INIT_WINDOW_WIDTH, Config::INIT_WINDOW_HEIGHT, "Raytracer", nullptr, nullptr);
     if (!glfwVulkanSupported())
     {
         printf("GLFW: Vulkan Not Supported\n");
