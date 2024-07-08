@@ -68,3 +68,9 @@ include_directories(${GLFW_DIR}/deps)
 add_executable(${PROJECT_NAME} ${sources} ${headers} ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp ${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp ${IMGUI_DIR}/imgui.cpp ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_demo.cpp ${IMGUI_DIR}/imgui_tables.cpp ${IMGUI_DIR}/imgui_widgets.cpp)
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DImTextureID=ImU64)
+
+##################
+## shaders #######
+##################
+
+add_subdirectory(${PROJECT_SOURCE_DIR}/shaders)
