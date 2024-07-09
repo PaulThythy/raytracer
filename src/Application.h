@@ -8,7 +8,7 @@ class Application {
 private:
 	Renderer m_renderer;
 
-	Shader m_shader;
+	
 public:
 	Application();
 	~Application();

@@ -1,26 +1,43 @@
-#include "Shader.h"
-
-#include <iostream>
-#include <fstream>
 #include <stdexcept>
-#include <vector>
 
-static std::vector<char> readFile(const std::string &filename)
-{
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+#include "Shader.h"
+#include "globals/globals.h"
 
-    if (!file.is_open())
-    {
-        throw std::runtime_error("failed to open file!");
-    }
+void Shader::createGraphicsPipeline() {
+    //auto vertShaderCode = Config::readFile("shaders/build/vert.spv");
+    auto fragShaderCode = Config::readFile("shaders/build/frag.spv");
 
-    size_t fileSize = (size_t)file.tellg();
-    std::vector<char> buffer(fileSize);
+    //VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
+    VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
 
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
+    /* VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
+    vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
+    vertShaderStageInfo.module = vertShaderModule;
+    vertShaderStageInfo.pName = "main"; */
 
-    file.close();
+    VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+    fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    fragShaderStageInfo.module = fragShaderModule;
+    fragShaderStageInfo.pName = "main";
 
-    return buffer;
+    VkPipelineShaderStageCreateInfo shaderStages[] = {/*vertShaderStageInfo,*/ fragShaderStageInfo};
+
+    vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
+    //vkDestroyShaderModule(device, vertShaderModule, nullptr);
 }
+
+VkShaderModule Shader::createShaderModule(const std::vector<char>& code) {
+        VkShaderModuleCreateInfo createInfo{};
+        createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+        createInfo.codeSize = code.size();
+        createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
+
+        VkShaderModule shaderModule;
+        if (vkCreateShaderModule(m_device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create shader module!");
+        }
+
+        return shaderModule;
+    }
