@@ -101,6 +101,10 @@ void Renderer::init() {
     init_info.Allocator = g_Allocator;
     init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
+
+    //shader initialization
+    m_shader.setDevice(g_Device);
+    m_shader.createGraphicsPipeline();
 }
 
 void Renderer::mainLoop() {

@@ -1,5 +1,5 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef GLOBALS_H
+#define GLOBALS_H
 
 #include <vector>
 #include <string>
@@ -11,7 +11,7 @@ namespace Config {
 
 	void initialize();
 
-	static std::vector<char> readFile(const std::string& filename);
+	std::vector<char> readFile(const std::string& filename);
 }
 
 #endif

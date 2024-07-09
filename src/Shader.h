@@ -2,18 +2,16 @@
 #define SHADER_H
 
 #include <string>
+#include <vector>
 
 #include "imgui_impl_vulkan.h"
 class Shader {
 private:
     VkDevice m_device;
-
-public:
-    Shader(VkDevice device): m_device(device) {} 
-    ~Shader();
-
-    void createGraphicsPipeline();
     VkShaderModule createShaderModule(const std::vector<char>& code);
+public:
+    void setDevice(VkDevice device) { m_device = device; }
+    void createGraphicsPipeline();
 };
 
 #endif
