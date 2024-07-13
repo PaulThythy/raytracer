@@ -7,6 +7,7 @@
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
 #include "vulkan/Shader.h"
+#include "vulkan/GraphicsPipeline.h"
 
 #include <GLFW/glfw3.h>
 
@@ -29,7 +30,8 @@ private:
 	int							g_MinImageCount = 2;
 	bool						g_SwapChainRebuild = false;
 
-	//Shader 						m_shader;
+	rtVulkan::Shader* 			m_shader;
+	rtVulkan::GraphicsPipeline* m_graphicsPipeline;
 
 public:
 	void init();

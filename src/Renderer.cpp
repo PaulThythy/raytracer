@@ -102,8 +102,9 @@ void Renderer::init() {
     init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
 
+    m_shader = new rtVulkan::Shader();
 
-    /* VkDescriptorSetLayout descriptorSetLayout;
+    VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
     uboLayoutBinding.binding = 0;
     uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -118,7 +119,9 @@ void Renderer::init() {
 
     if (vkCreateDescriptorSetLayout(g_Device, &layoutInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create descriptor set layout!");
-    } */
+    }
+
+    m_graphicsPipeline = new rtVulkan::GraphicsPipeline(g_Device, wd->RenderPass, descriptorSetLayout, m_shader->getVertShaderModule(), m_shader->getFragShaderModule());
 }
 
 void Renderer::mainLoop() {
@@ -246,6 +249,9 @@ void Renderer::cleanup() {
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+
+    delete m_shader;
+    delete m_graphicsPipeline;
 
     CleanupVulkanWindow();
     CleanupVulkan();

@@ -6,18 +6,24 @@
 
 #include "imgui_impl_vulkan.h"
 
-class Shader {
+namespace rtVulkan {
+    class Shader {
 
-private:
-    VkDevice m_device;
-    VkShaderModule m_fragShaderModule;
-    VkShaderModule m_vertShaderModule;
+    private:
+        VkDevice m_device;
+        VkShaderModule m_fragShaderModule;
+        VkShaderModule m_vertShaderModule;
 
-    VkShaderModule createShaderModule(const std::vector<char>& code);
-    void destroyShaderModules();
-public:
-    Shader();
-    ~Shader();
-};
+        VkShaderModule createShaderModule(const std::vector<char>& code);
+        void destroyShaderModules();
+    public:
+        Shader();
+        ~Shader();
+
+        VkShaderModule getVertShaderModule() { return m_vertShaderModule; }
+        VkShaderModule getFragShaderModule() { return m_fragShaderModule; }
+    };
+
+}
 
 #endif
