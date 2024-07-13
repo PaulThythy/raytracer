@@ -6,7 +6,7 @@
 #include "imgui_impl_vulkan.h"
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
-#include "Shader.h"
+#include "vulkan/Shader.h"
 
 #include <GLFW/glfw3.h>
 
@@ -29,7 +29,7 @@ private:
 	int							g_MinImageCount = 2;
 	bool						g_SwapChainRebuild = false;
 
-	Shader 						m_shader;
+	//Shader 						m_shader;
 
 public:
 	void init();
