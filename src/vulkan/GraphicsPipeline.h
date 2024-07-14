@@ -1,5 +1,5 @@
-#ifndef GRAPHICSPIPELINE_H
-#define GRAPHICSPIPELINE_H
+#ifndef GRAPHICS_PIPELINE_H
+#define GRAPHICS_PIPELINE_H
 
 #include "imgui_impl_vulkan.h"
 

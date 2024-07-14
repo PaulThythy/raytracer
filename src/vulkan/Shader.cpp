@@ -3,7 +3,8 @@
 #include "Shader.h"
 #include "globals/globals.h"
 
-Shader::Shader() {
+
+rtVulkan::Shader::Shader() {
     auto vertShaderCode = Config::readFile("shaders/build/vert.spv");
     auto fragShaderCode = Config::readFile("shaders/build/frag.spv");
 
@@ -11,11 +12,11 @@ Shader::Shader() {
     m_fragShaderModule = createShaderModule(fragShaderCode);
 }
 
-Shader::~Shader() {
+rtVulkan::Shader::~Shader() {
     destroyShaderModules();
 }
 
-VkShaderModule Shader::createShaderModule(const std::vector<char>& code) {
+VkShaderModule rtVulkan::Shader::createShaderModule(const std::vector<char>& code) {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = code.size();
@@ -29,7 +30,7 @@ VkShaderModule Shader::createShaderModule(const std::vector<char>& code) {
     return shaderModule;
 }
 
-void Shader::destroyShaderModules() {
+void rtVulkan::Shader::destroyShaderModules() {
     vkDestroyShaderModule(m_device, m_fragShaderModule, nullptr);
     vkDestroyShaderModule(m_device, m_vertShaderModule, nullptr);
 }

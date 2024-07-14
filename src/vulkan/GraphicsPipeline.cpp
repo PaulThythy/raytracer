@@ -2,6 +2,7 @@
 
 #include "GraphicsPipeline.h"
 
+
 rtVulkan::GraphicsPipeline::GraphicsPipeline(   VkDevice device, VkRenderPass renderPass,
                                                 const VkDescriptorSetLayout descriptorSetLayout,
                                                 const VkShaderModule vertShaderModule,

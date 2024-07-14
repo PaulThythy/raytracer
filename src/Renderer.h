@@ -6,6 +6,7 @@
 #include "imgui_impl_vulkan.h"
 #define GLFW_INCLUDE_NONE
 #define GLFW_INCLUDE_VULKAN
+
 #include "vulkan/Shader.h"
 #include "vulkan/GraphicsPipeline.h"
 
