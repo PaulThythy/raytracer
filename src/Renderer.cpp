@@ -10,7 +10,9 @@
 #include "Scene.h"
 #include "Camera.h"
 #include "math/Sphere.h"
-#include "globals/globals.cpp"
+#include "globals/globals.h"
+#include "vulkan/Shader.h"
+#include "vulkan/GraphicsPipeline.h"
 
 void static glfw_error_callback(int error, const char* description)
 {
@@ -102,7 +104,7 @@ void Renderer::init() {
     init_info.CheckVkResultFn = check_vk_result;
     ImGui_ImplVulkan_Init(&init_info);
 
-    m_shader = new rtVulkan::Shader();
+    //m_shader = new Shader();
 
     VkDescriptorSetLayout descriptorSetLayout;
     VkDescriptorSetLayoutBinding uboLayoutBinding{};
@@ -121,7 +123,7 @@ void Renderer::init() {
         throw std::runtime_error("failed to create descriptor set layout!");
     }
 
-    m_graphicsPipeline = new rtVulkan::GraphicsPipeline(g_Device, wd->RenderPass, descriptorSetLayout, m_shader->getVertShaderModule(), m_shader->getFragShaderModule());
+    //m_graphicsPipeline = new GraphicsPipeline(g_Device, wd->RenderPass, descriptorSetLayout, m_shader->getVertShaderModule(), m_shader->getFragShaderModule());
 }
 
 void Renderer::mainLoop() {
@@ -250,8 +252,8 @@ void Renderer::cleanup() {
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    delete m_shader;
-    delete m_graphicsPipeline;
+    //delete m_shader;
+    //delete m_graphicsPipeline;
 
     CleanupVulkanWindow();
     CleanupVulkan();

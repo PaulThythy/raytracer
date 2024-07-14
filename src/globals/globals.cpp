@@ -10,8 +10,6 @@ namespace Config {
     int INIT_WINDOW_WIDTH = 1920;
 	int INIT_WINDOW_HEIGHT = 1080;
 
-    void initialize() {}
-
     std::vector<char> readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 

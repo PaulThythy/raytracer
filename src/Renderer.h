@@ -31,8 +31,8 @@ private:
 	int							g_MinImageCount = 2;
 	bool						g_SwapChainRebuild = false;
 
-	rtVulkan::Shader* 			m_shader;
-	rtVulkan::GraphicsPipeline* m_graphicsPipeline;
+	Shader* 			m_shader;
+	GraphicsPipeline* m_graphicsPipeline;
 
 public:
 	void init();

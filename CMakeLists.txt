@@ -17,8 +17,8 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
 
-file(GLOB sources src/*.cpp)
-file(GLOB headers src/*.h)
+file(GLOB_RECURSE sources src/*.cpp)
+file(GLOB_RECURSE headers src/*.h)
 
 ##################
 ## GLFW ##########

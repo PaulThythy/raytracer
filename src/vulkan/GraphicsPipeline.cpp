@@ -3,7 +3,7 @@
 #include "GraphicsPipeline.h"
 
 
-rtVulkan::GraphicsPipeline::GraphicsPipeline(   VkDevice device, VkRenderPass renderPass,
+GraphicsPipeline::GraphicsPipeline(   VkDevice device, VkRenderPass renderPass,
                                                 const VkDescriptorSetLayout descriptorSetLayout,
                                                 const VkShaderModule vertShaderModule,
                                                 const VkShaderModule fragShaderModule) {
@@ -11,7 +11,7 @@ rtVulkan::GraphicsPipeline::GraphicsPipeline(   VkDevice device, VkRenderPass re
     createPipeline(renderPass, descriptorSetLayout, vertShaderModule, fragShaderModule);
 }
 
-void rtVulkan::GraphicsPipeline::createPipeline(VkRenderPass renderPass, VkDescriptorSetLayout descriptorSetLayout,
+void GraphicsPipeline::createPipeline(VkRenderPass renderPass, VkDescriptorSetLayout descriptorSetLayout,
                                                 VkShaderModule vertShaderModule, VkShaderModule fragShaderModule) {
     
     VkPipelineShaderStageCreateInfo vertShaderStageInfo {};
