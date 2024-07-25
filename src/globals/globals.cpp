@@ -7,8 +7,8 @@
 namespace Config {
 
     int SAMPLES = 1;
-    int INIT_WINDOW_WIDTH = 1920;
-	int INIT_WINDOW_HEIGHT = 1080;
+    uint32_t INIT_WINDOW_WIDTH = 1920;
+	uint32_t INIT_WINDOW_HEIGHT = 1080;
 
     std::vector<char> readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);

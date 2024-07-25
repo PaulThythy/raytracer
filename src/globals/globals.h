@@ -6,8 +6,8 @@
 
 namespace Config {
 	extern int SAMPLES;
-	extern int INIT_WINDOW_WIDTH;
-	extern int INIT_WINDOW_HEIGHT;
+	extern uint32_t INIT_WINDOW_WIDTH;
+	extern uint32_t INIT_WINDOW_HEIGHT;
 
 	std::vector<char> readFile(const std::string& filename);
 }

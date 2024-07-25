@@ -1,7 +1,11 @@
-#version 330 core
+#version 450
 
-layout(location = 0) in vec2 inPos;
+layout (location=0) in vec3 vertexPos;
+layout (location=1) in vec2 vertexUV;
+
+layout (location=1) out vec2 fragUV;
 
 void main() {
-    gl_Position = vec4(inPos, 0.0, 1.0);
+	fragUV = vertexUV;
+	gl_Position = vec4(vertexPos.xyz, 1.0);
 }
