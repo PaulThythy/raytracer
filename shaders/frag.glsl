@@ -13,16 +13,47 @@ struct Sphere {
 
 struct Camera {
     vec3 position;
-    vec2 viewportSize;
+    vec3 lookAt;
+    vec3 up;
+    float fov;
+    float aspectRatio;
+    vec3 horizontal;            //horizontal vector of the viewport
+    vec3 vertical;              //vertical vector of the viewport
+    vec3 lowerLeftCorner;       //lower left corner of the viewport
 };
 
 
 const Sphere spheres[] = {
-    Sphere(vec3(0.0, 0.0, -5.0), 1.0, vec4(1.0, 0.0, 0.0, 1.0)),
-    Sphere(vec3(0.0, 4.0, -5.0), 0.3, vec4(0.0, 0.0, 1.0, 1.0))
+    Sphere(vec3(0.0, 0.0, -60.0), 1.0, vec4(1.0, 0.0, 0.0, 1.0)),
+    Sphere(vec3(0.0, 4.0, -60.0), 0.3, vec4(0.0, 0.0, 1.0, 1.0))
 };
 
-const Camera camera = Camera(vec3(0.0, 0.0, 0.0), vec2(16.0 / 9.0, 1.0));
+Camera calculateCamera(vec3 position, vec3 lookAt, vec3 up, float fov, float aspectRatio) {
+    Camera cam;
+    float theta = radians(fov);
+    float h = tan(theta / 2.0);
+    float viewportHeight = 2.0 * h;
+    float viewportWidth = aspectRatio * viewportHeight;
+
+    vec3 w = normalize(position - lookAt);
+    vec3 u = normalize(cross(up, w));
+    vec3 v = cross(w, u);
+
+    cam.position = position;
+    cam.horizontal = viewportWidth * u;
+    cam.vertical = viewportHeight * v;
+    cam.lookAt = lookAt;
+    cam.up = up;
+    cam.fov = fov;
+    cam.aspectRatio = aspectRatio;
+    cam.lowerLeftCorner = cam.position - cam.horizontal / 2.0 - cam.vertical / 2.0 - w;
+
+    return cam;
+}
+
+vec3 getRayDirection(Camera camera, vec2 uv) {
+    return normalize(camera.lowerLeftCorner + uv.x * camera.horizontal + uv.y * camera.vertical - camera.position);
+}
 
 bool sphereHit(vec3 rayOrigin, vec3 rayDirection, Sphere sphere, out float t) {
     vec3 oc = rayOrigin - sphere.center;
@@ -58,8 +89,16 @@ bool sphereHit(vec3 rayOrigin, vec3 rayDirection, Sphere sphere, out float t) {
 }
 
 void main() {
+    vec3 lookFrom = vec3(0.0, 0.0, 0.0);
+    vec3 lookAt = vec3(0.0, 0.0, -1.0);
+    vec3 vup = vec3(0.0, 1.0, 0.0);
+    float fov = 16.0/9.0;
+    float aspectRatio = 16.0 / 9.0;
+
+    Camera camera = calculateCamera(lookFrom, lookAt, vup, fov, aspectRatio);
+
     vec2 normalizedUV = fragUV * 2.0 - 1.0;
-    vec3 rayDirection = normalize(vec3(normalizedUV * vec2(camera.viewportSize.x / camera.viewportSize.y, 1.0), -1.0));
+    vec3 rayDirection = getRayDirection(camera, normalizedUV);
     vec3 rayOrigin = camera.position;
 
     float closestT = 1.0e+30; //a big number

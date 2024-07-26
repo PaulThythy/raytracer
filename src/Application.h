@@ -709,6 +709,14 @@ private:
             VkDeviceSize offsets[] = {0};
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
+            /* struct PushConstants {
+                float windowWidth;
+                float windowHeight;
+            } pushConstants = { (float)swapChainExtent.width, (float)swapChainExtent.height };
+
+            // Mettre à jour les push constants
+            vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(PushConstants), &pushConstants); */
+
             vkCmdDraw(commandBuffer, static_cast<uint32_t>(vertices.size()), 1, 0, 0);
 
         vkCmdEndRenderPass(commandBuffer);
