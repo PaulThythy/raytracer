@@ -13,6 +13,13 @@ Application::~Application() {
 	cleanupGlfw();
 }
 
+Application::~Application() {
+	std::cout << "Cleaning up..." << std::endl;
+
+	cleanupVulkan();
+	cleanupGlfw();
+}
+
 void Application::run() {
 	while (!glfwWindowShouldClose(m_window)) {
 		glfwPollEvents();
@@ -56,15 +63,15 @@ void Application::cleanupVulkan() {
 
 void Application::cleanupGlfw() {
 	glfwDestroyWindow(m_window);
-	glfwTerminate();
+  glfwTerminate();
 }
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 	auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
-	app->framebufferResized = true;
+  app->framebufferResized = true;
 
-	Config::INIT_WINDOW_WIDTH = width;
-	Config::INIT_WINDOW_HEIGHT = height;
+  Config::INIT_WINDOW_WIDTH = width;
+  Config::INIT_WINDOW_HEIGHT = height;
 }
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
