@@ -3,20 +3,25 @@
 
 Application::Application() {
 	initGlfw();
-	//initVulkanCtx();
-	//initImguiCtx();
+	initVulkanCtx(m_window);
 }
 
 Application::~Application() {
-    std::cout << "Cleaning up..." << std::endl;
-	
-	//cleanUpImgui();
-	//cleanupVulkan();
+	std::cout << "Cleaning up..." << std::endl;
+
+	cleanupVulkan();
+	cleanupGlfw();
+}
+
+Application::~Application() {
+	std::cout << "Cleaning up..." << std::endl;
+
+	cleanupVulkan();
 	cleanupGlfw();
 }
 
 void Application::run() {
-	while (!glfwWindowShouldClose(window)) {
+	while (!glfwWindowShouldClose(m_window)) {
 		glfwPollEvents();
 	}
 
@@ -25,35 +30,48 @@ void Application::run() {
 
 void Application::initGlfw() {
 	if (!glfwInit()) {
-		throw std::runtime_error("Unable to initialize GLFW!");
+		throw std::runtime_error("GLFW: Unable to initialize GLFW!");
 	}
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 
-	window = glfwCreateWindow(Config::INIT_WINDOW_WIDTH, Config::INIT_WINDOW_HEIGHT, "Raytracer", nullptr, nullptr);
+	if (!glfwVulkanSupported()) {
+		throw std::runtime_error("GLFW: Vulkan not supported!");
+	}
+
+	m_window = glfwCreateWindow(Config::INIT_WINDOW_WIDTH, Config::INIT_WINDOW_HEIGHT, "Raytracer", nullptr, nullptr);
 
 	// Add a pointer that allows GLFW to reference our instance
-	glfwSetWindowUserPointer(window, this);
+	glfwSetWindowUserPointer(m_window, this);
 
 	//add callbacks
-	glfwSetKeyCallback(window, keyCallback);
-	glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+	glfwSetKeyCallback(m_window, keyCallback);
+	glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 	glfwSetErrorCallback(glfwErrorCallback);
 
-	if (!window) {
+	if (!m_window) {
 		glfwTerminate();
-		throw std::runtime_error("Unable to create window!");
+		throw std::runtime_error("GLFW: Unable to create window!");
 	}
 }
 
+void Application::initVulkanCtx(GLFWwindow* window) { m_vulkanCtx.initVulkan(window); }
+
+void Application::cleanupVulkan() {
+
+}
+
 void Application::cleanupGlfw() {
-	glfwDestroyWindow(window);
-	glfwTerminate();
+	glfwDestroyWindow(m_window);
+  glfwTerminate();
 }
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 	auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
-	app->framebufferResized = true;
+  app->framebufferResized = true;
+
+  Config::INIT_WINDOW_WIDTH = width;
+  Config::INIT_WINDOW_HEIGHT = height;
 }
 
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {

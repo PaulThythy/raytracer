@@ -1,33 +1,36 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
-#include <iostream>
-
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <iostream>
+#include <stdexcept>
+
+#include "vulkan/VulkanContext.h"
 
 class Application {
 public:
+    Application();
+    ~Application();
 
-	bool framebufferResized = false;
+    GLFWwindow* m_window;
 
-	Application();
-	~Application();
-	void run();
+    void run();
 
+    bool framebufferResized = false;
 private:
-	GLFWwindow* window;
+    VulkanContext m_vulkanCtx;
 
-	void initGlfw();
-	//void initVulkanCtx();
-	//void initImguiCtx();
+    void initGlfw();
+    void initVulkanCtx(GLFWwindow* window);
 
-	//void cleanUpImgui();
-	//void cleanupVulkan();
-	void cleanupGlfw();
+    void cleanupVulkan();
+    void cleanupGlfw();
 };
 
-// Static callback functions
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 static void glfwErrorCallback(int error, const char* description);
