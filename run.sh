@@ -2,7 +2,7 @@
 
 build_type=Release
 
-cmake -S . -B build/$build_type -G "Ninja" -DCMAKE_BUILD_TYPE=$build_type
+cmake -S . -B build/$build_type -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=$build_type
 cmake --build build/$build_type --target raytracer
 
 #Check if the compilation was successful

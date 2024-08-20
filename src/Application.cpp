@@ -13,13 +13,6 @@ Application::~Application() {
 	cleanupGlfw();
 }
 
-Application::~Application() {
-	std::cout << "Cleaning up..." << std::endl;
-
-	cleanupVulkan();
-	cleanupGlfw();
-}
-
 void Application::run() {
 	while (!glfwWindowShouldClose(m_window)) {
 		glfwPollEvents();
