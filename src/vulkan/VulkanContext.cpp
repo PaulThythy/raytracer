@@ -22,6 +22,8 @@ void VulkanContext::initVulkan(GLFWwindow* window) {
     createCommandPool();
     createCommandBuffers();
     createSyncObjects();*/
+
+    createImguiContext(window);
 }
 
 void VulkanContext::createInstance(ImVector<const char*> instance_extensions) {
@@ -174,8 +176,8 @@ void VulkanContext::createSurface(GLFWwindow* window) {
 void VulkanContext::createFrameBuffers(GLFWwindow* window) {
     int w, h;
     glfwGetFramebufferSize(window, &w, &h);
-    ImGui_ImplVulkanH_Window* wd = &m_mainWindowData;
-    setupVulkanWindow(wd, m_surface, w, h);
+    m_wd = &m_mainWindowData;
+    setupVulkanWindow(m_wd, m_surface, w, h);
 }
 
 void VulkanContext::setupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR surface, int width, int height) {
@@ -205,6 +207,224 @@ void VulkanContext::setupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR
     // Create SwapChain, RenderPass, Framebuffer, etc.
     IM_ASSERT(m_minImageCount >= 2);
     ImGui_ImplVulkanH_CreateOrResizeWindow(m_instance, m_physicalDevice, m_device, wd, m_queueFamily, m_allocator, width, height, m_minImageCount);
+}
+
+void VulkanContext::createImguiContext(GLFWwindow* window) {
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    m_io = ImGui::GetIO(); (void)m_io;
+    m_io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    m_io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+
+#if defined(WIN32)
+    // enables docking only for windows
+    m_io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    m_io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+#endif
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+    ImGuiStyle& style = ImGui::GetStyle();
+    if (m_io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        style.WindowRounding = 0.0f;
+        style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+    }
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForVulkan(window, true);
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = m_instance;
+    init_info.PhysicalDevice = m_physicalDevice;
+    init_info.Device = m_device;
+    init_info.QueueFamily = m_queueFamily;
+    init_info.Queue = m_queue;
+    init_info.PipelineCache = m_pipelineCache;
+    init_info.DescriptorPool = m_descriptorPool;
+    init_info.RenderPass = m_wd->RenderPass;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = m_minImageCount;
+    init_info.ImageCount = m_wd->ImageCount;
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = m_allocator;
+    init_info.CheckVkResultFn = check_vk_result;
+    ImGui_ImplVulkan_Init(&init_info);
+}
+
+void VulkanContext::mainLoop(GLFWwindow* window) {
+    bool show_demo_window = true;
+    bool show_another_window = false;
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+    // Resize swap chain?
+    int fb_width, fb_height;
+    glfwGetFramebufferSize(window, &fb_width, &fb_height);
+    if (fb_width > 0 && fb_height > 0 && (m_swapChainRebuild || m_mainWindowData.Width != fb_width || m_mainWindowData.Height != fb_height))
+    {
+        ImGui_ImplVulkan_SetMinImageCount(m_minImageCount);
+        ImGui_ImplVulkanH_CreateOrResizeWindow(m_instance, m_physicalDevice, m_device, &m_mainWindowData, m_queueFamily, m_allocator, fb_width, fb_height, m_minImageCount);
+        m_mainWindowData.FrameIndex = 0;
+        m_swapChainRebuild = false;
+    }
+    if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0)
+    {
+        ImGui_ImplGlfw_Sleep(10);
+        continue;
+    }
+
+    // Start the Dear ImGui frame
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+    if (show_demo_window)
+        ImGui::ShowDemoWindow(&show_demo_window);
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+    {
+        static float f = 0.0f;
+        static int counter = 0;
+
+        ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+        ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+        ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+        ImGui::Checkbox("Another Window", &show_another_window);
+
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+        ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+        if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+            counter++;
+        ImGui::SameLine();
+        ImGui::Text("counter = %d", counter);
+
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / m_io.Framerate, m_io.Framerate);
+        ImGui::End();
+    }
+
+    // 3. Show another simple window.
+    if (show_another_window)
+    {
+        ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+        ImGui::Text("Hello from another window!");
+        if (ImGui::Button("Close Me"))
+            show_another_window = false;
+        ImGui::End();
+    }
+
+    // Rendering
+    ImGui::Render();
+    ImDrawData* main_draw_data = ImGui::GetDrawData();
+    const bool main_is_minimized = (main_draw_data->DisplaySize.x <= 0.0f || main_draw_data->DisplaySize.y <= 0.0f);
+    m_wd->ClearValue.color.float32[0] = clear_color.x * clear_color.w;
+    m_wd->ClearValue.color.float32[1] = clear_color.y * clear_color.w;
+    m_wd->ClearValue.color.float32[2] = clear_color.z * clear_color.w;
+    m_wd->ClearValue.color.float32[3] = clear_color.w;
+    if (!main_is_minimized)
+        frameRender(main_draw_data);
+
+    // Update and Render additional Platform Windows
+    if (m_io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+    }
+
+    // Present Main Platform Window
+    if (!main_is_minimized)
+        framePresent();
+}
+
+void VulkanContext::frameRender(ImDrawData* draw_data) {
+    VkResult err;
+
+    VkSemaphore image_acquired_semaphore = m_wd->FrameSemaphores[m_wd->SemaphoreIndex].ImageAcquiredSemaphore;
+    VkSemaphore render_complete_semaphore = m_wd->FrameSemaphores[m_wd->SemaphoreIndex].RenderCompleteSemaphore;
+    err = vkAcquireNextImageKHR(m_device, m_wd->Swapchain, UINT64_MAX, image_acquired_semaphore, VK_NULL_HANDLE, &m_wd->FrameIndex);
+    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
+    {
+        m_swapChainRebuild = true;
+        return;
+    }
+    check_vk_result(err);
+
+    ImGui_ImplVulkanH_Frame* fd = &m_wd->Frames[m_wd->FrameIndex];
+    {
+        err = vkWaitForFences(m_device, 1, &fd->Fence, VK_TRUE, UINT64_MAX);    // wait indefinitely instead of periodically checking
+        check_vk_result(err);
+
+        err = vkResetFences(m_device, 1, &fd->Fence);
+        check_vk_result(err);
+    }
+    {
+        err = vkResetCommandPool(m_device, fd->CommandPool, 0);
+        check_vk_result(err);
+        VkCommandBufferBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        err = vkBeginCommandBuffer(fd->CommandBuffer, &info);
+        check_vk_result(err);
+    }
+    {
+        VkRenderPassBeginInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        info.renderPass = m_wd->RenderPass;
+        info.framebuffer = fd->Framebuffer;
+        info.renderArea.extent.width = m_wd->Width;
+        info.renderArea.extent.height = m_wd->Height;
+        info.clearValueCount = 1;
+        info.pClearValues = &m_wd->ClearValue;
+        vkCmdBeginRenderPass(fd->CommandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
+    }
+
+    // Record dear imgui primitives into command buffer
+    ImGui_ImplVulkan_RenderDrawData(draw_data, fd->CommandBuffer);
+
+    // Submit command buffer
+    vkCmdEndRenderPass(fd->CommandBuffer);
+    {
+        VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        VkSubmitInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        info.waitSemaphoreCount = 1;
+        info.pWaitSemaphores = &image_acquired_semaphore;
+        info.pWaitDstStageMask = &wait_stage;
+        info.commandBufferCount = 1;
+        info.pCommandBuffers = &fd->CommandBuffer;
+        info.signalSemaphoreCount = 1;
+        info.pSignalSemaphores = &render_complete_semaphore;
+
+        err = vkEndCommandBuffer(fd->CommandBuffer);
+        check_vk_result(err);
+        err = vkQueueSubmit(m_queue, 1, &info, fd->Fence);
+        check_vk_result(err);
+    }
+}
+
+void VulkanContext::framePresent() {
+    if (m_swapChainRebuild)
+        return;
+    VkSemaphore render_complete_semaphore = m_wd->FrameSemaphores[m_wd->SemaphoreIndex].RenderCompleteSemaphore;
+    VkPresentInfoKHR info = {};
+    info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    info.waitSemaphoreCount = 1;
+    info.pWaitSemaphores = &render_complete_semaphore;
+    info.swapchainCount = 1;
+    info.pSwapchains = &m_wd->Swapchain;
+    info.pImageIndices = &m_wd->FrameIndex;
+    VkResult err = vkQueuePresentKHR(m_queue, &info);
+    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR)
+    {
+        m_swapChainRebuild = true;
+        return;
+    }
+    check_vk_result(err);
+    m_wd->SemaphoreIndex = (m_wd->SemaphoreIndex + 1) % m_wd->SemaphoreCount; // Now we can use the next set of semaphores
 }
 
 static void check_vk_result(VkResult err)

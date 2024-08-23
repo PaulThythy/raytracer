@@ -18,6 +18,7 @@
 class VulkanContext {
 public:
 	void initVulkan(GLFWwindow* window);
+	void mainLoop(GLFWwindow* window);
 
 private:
 	VkInstance m_instance;
@@ -25,13 +26,18 @@ private:
 	VkPhysicalDevice m_physicalDevice;
 	VkSurfaceKHR m_surface;
 	VkDescriptorPool m_descriptorPool;
+	VkPipelineCache m_pipelineCache = VK_NULL_HANDLE;
+	ImGui_ImplVulkanH_Window* m_wd;
 	VkAllocationCallbacks* m_allocator = nullptr;
 	VkDebugReportCallbackEXT m_debugReport = VK_NULL_HANDLE;
 	VkDevice m_logicalDevice;
 	VkQueue m_queue;
 	uint32_t m_queueFamily = (uint32_t)-1;
 	ImGui_ImplVulkanH_Window m_mainWindowData;
+	ImGuiIO m_io;
+
 	int m_minImageCount = 2;
+	bool m_swapChainRebuild = false;
 
 
 	struct UniformBufferObject {
@@ -90,6 +96,9 @@ private:
 	void createDescriptorPool();
 	void createFrameBuffers(GLFWwindow* window);
 	void setupVulkanWindow(ImGui_ImplVulkanH_Window* wd, VkSurfaceKHR surface, int width, int height);
+	void createImguiContext(GLFWwindow* window);
+	void frameRender(ImDrawData* draw_data);
+	void framePresent();
 
 };
 

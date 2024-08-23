@@ -16,6 +16,8 @@ Application::~Application() {
 void Application::run() {
 	while (!glfwWindowShouldClose(m_window)) {
 		glfwPollEvents();
+
+		m_vulkanCtx.mainLoop(m_window);
 	}
 
 	//vkDeviceWaitIdle(logicalDevice);
