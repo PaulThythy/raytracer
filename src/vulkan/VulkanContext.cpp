@@ -272,7 +272,7 @@ void VulkanContext::mainLoop(GLFWwindow* window) {
     if (glfwGetWindowAttrib(window, GLFW_ICONIFIED) != 0)
     {
         ImGui_ImplGlfw_Sleep(10);
-        continue;
+        return;
     }
 
     // Start the Dear ImGui frame
