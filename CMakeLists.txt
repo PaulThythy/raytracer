@@ -14,8 +14,10 @@ project(raytracer)
 
 set(CMAKE_CXX_STANDARD 23)
 
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -g")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall")
+if(NOT CMAKE_BUILD_TYPE)
+	set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build, options are: Debug Release RelWithDebInfo MinSizeRel." FORCE)
+	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel")
+endif()
 
 file(GLOB_RECURSE sources src/*.cpp)
 file(GLOB_RECURSE headers src/*.h)
@@ -53,8 +55,8 @@ find_package(Vulkan REQUIRED)
 ## glm ###########
 ##################
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/libs/glm)
-include_directories(${PROJECT_SOURCE_DIR}/libs/glm)
+add_subdirectory(${PROJECT_SOURCE_DIR}/libs/glm/glm)
+include_directories(${PROJECT_SOURCE_DIR}/libs/glm/glm)
 
 ##################
 ## libraries #####
