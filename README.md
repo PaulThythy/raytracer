@@ -12,7 +12,7 @@
 - **Windows**: Download the [MinGW Windows Binary](https://sourceforge.net/projects/mingw/)
 Or use [Visual Studio](https://visualstudio.microsoft.com/) with its built-in MSVC compiler.
 
-### CMake
+### CMake 3.30
 
 - **Ubuntu**: Install CMake using this command:
 ```bash
@@ -21,7 +21,7 @@ Or use [Visual Studio](https://visualstudio.microsoft.com/) with its built-in MS
 
 - **Windows**: Download the [CMake Windows binary](https://cmake.org/download/)
 
-### Ninja
+### Ninja 1.12
 
 - **Ubuntu**: Install Ninja using this command:
 ```bash
@@ -30,7 +30,7 @@ Or use [Visual Studio](https://visualstudio.microsoft.com/) with its built-in MS
 
 - **Windows**: Download the [Ninja Windows Binary](https://github.com/ninja-build/ninja/releases)
 
-### VulkanSDK
+### VulkanSDK 1.3
 
 - **Ubuntu**: Install the VulkanSDK using this command:
 ```bash
