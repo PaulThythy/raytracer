@@ -15,6 +15,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
+#include "../globals/globals.h"
+
 class VulkanContext {
 public:
 	void initVulkan(GLFWwindow* window);
@@ -34,7 +36,8 @@ private:
 	VkQueue m_queue;
 	uint32_t m_queueFamily = (uint32_t)-1;
 	ImGui_ImplVulkanH_Window m_mainWindowData;
-	ImGuiIO m_io;
+
+	ImGuiIO* m_io;
 
 	int m_minImageCount = 2;
 	bool m_swapChainRebuild = false;

@@ -10,6 +10,9 @@ namespace Config {
     uint32_t INIT_WINDOW_WIDTH = 1920;
 	uint32_t INIT_WINDOW_HEIGHT = 1080;
 
+    bool SHOW_DEMO_WINDOW = true;
+    bool SHOW_ANOTHER_WINDOW = false;
+
     std::vector<char> readFile(const std::string& filename) {
         std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
