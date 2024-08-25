@@ -26,6 +26,28 @@ void VulkanContext::initVulkan(GLFWwindow* window) {
     createImguiContext(window);
 }
 
+void VulkanContext::cleanupVulkan() {
+    VkResult err = vkDeviceWaitIdle(m_device);
+    check_vk_result(err);
+
+    //cleaning imgui context
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
+    //cleaning vulkan context
+    ImGui_ImplVulkanH_DestroyWindow(m_instance, m_device, &m_mainWindowData, m_allocator);
+
+    vkDestroyDescriptorPool(m_device, m_descriptorPool, m_allocator);
+
+    //if using the debug report callback
+    auto f_vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugReportCallbackEXT");
+    f_vkDestroyDebugReportCallbackEXT(m_instance, m_debugReport, m_allocator);
+
+    vkDestroyDevice(m_device, m_allocator);
+    vkDestroyInstance(m_instance, m_allocator);
+}
+
 void VulkanContext::createInstance(ImVector<const char*> instance_extensions) {
     VkResult err;
 

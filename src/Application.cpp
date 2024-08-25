@@ -53,12 +53,12 @@ void Application::initGlfw() {
 void Application::initVulkanCtx(GLFWwindow* window) { m_vulkanCtx.initVulkan(window); }
 
 void Application::cleanupVulkan() {
-
+	m_vulkanCtx.cleanupVulkan();
 }
 
 void Application::cleanupGlfw() {
 	glfwDestroyWindow(m_window);
-  glfwTerminate();
+	glfwTerminate();
 }
 
 static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {

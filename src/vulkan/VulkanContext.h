@@ -21,6 +21,7 @@ class VulkanContext {
 public:
 	void initVulkan(GLFWwindow* window);
 	void mainLoop(GLFWwindow* window);
+	void cleanupVulkan();
 
 private:
 	VkInstance m_instance;
