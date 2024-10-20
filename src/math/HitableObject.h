@@ -1,7 +1,7 @@
 #ifndef HITABLEOBJECT_H
 #define HITABLEOBJECT_H
 
-#include "math/Ray.h"
+#include "Ray.h"
 
 namespace Hitable {
 	

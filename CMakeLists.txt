@@ -19,8 +19,10 @@ if(NOT CMAKE_BUILD_TYPE)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug;Release;RelWithDebInfo;MinSizeRel")
 endif()
 
-file(GLOB_RECURSE sources src/*.cpp)
-file(GLOB_RECURSE headers src/*.h)
+file(GLOB_RECURSE sources src/**.cpp)
+file(GLOB_RECURSE headers src/**.h)
+
+include_directories(${CMAKE_SOURCE_DIR}/src)
 
 ##################
 ## GLFW ##########
