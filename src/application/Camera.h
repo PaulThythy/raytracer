@@ -4,33 +4,45 @@
 #include "math/Ray.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 struct Camera {
-	glm::vec3 m_position;
-	glm::vec3 m_lookAt;
-	glm::vec3 m_up;
+    struct UniformBufferObject {
+        alignas(16) glm::mat4 m_model;
+        alignas(16) glm::mat4 m_view;
+        alignas(16) glm::mat4 m_proj;
+    };
 
-	double m_fov;
-	double m_aspectRatio;
-	double m_aperture;
-	double m_focusDist;
 
-	double m_nearPlane;
-	double m_farPlane;
+    Camera(
+        const glm::mat4& view = glm::lookAt(
+            glm::vec3(0.0, 0.0, 3.0),                                       //camera position
+            glm::vec3(0, 0, 0),                                             //look at
+            glm::vec3(0, 1, 0)                                              //up
+        ),
+        const glm::mat4& model, 
+        const glm::mat4& proj
+    )
+        : m_model(model), m_view(view), m_proj(proj) {}
 
-	int m_screenWidth;
-	int m_screenHeight;
+    ~Camera() = default;
 
-	Camera(
-		const glm::vec3& position, const glm::vec3& lookAt, const glm::vec3& up,
-		double fov, double aspectRatio, double aperture, double focusDist,
-		double nearPlane = 0.1, double farPlane = 300.0
-	): m_position(position), m_lookAt(lookAt), m_up(up), m_fov(fov), m_aspectRatio(aspectRatio), m_aperture(aperture), m_focusDist(focusDist) {
-		
-		this->m_nearPlane = nearPlane; this->m_farPlane = farPlane;
-	}
+    void setModel(const glm::mat4& model) { m_model = model; }
+    void setView(const glm::mat4& view) { m_view = view; }
+    void setProj(const glm::mat4& proj) { m_proj = proj; }
 
-	Ray::Ray getRay(float u, float v) const;
+    UniformBufferObject getUniformBufferObject() const {
+        UniformBufferObject ubo{};
+        ubo.m_model = m_model;
+        ubo.m_view = m_view;
+        ubo.m_proj = m_proj;
+        return ubo;
+    }
+
+private:
+    glm::mat4 m_model;
+    glm::mat4 m_view;
+    glm::mat4 m_proj;
 };
 
-#endif
+#endif // CAMERA_H

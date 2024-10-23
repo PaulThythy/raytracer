@@ -6,6 +6,7 @@
 #include <vector>
 #include <stdexcept>
 #include <array>
+#include <optional>
 #include <iostream>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -15,7 +16,7 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_vulkan.h"
 
-#include "../globals/globals.h"
+#include "globals/globals.h"
 
 class VulkanContext {
 public:
@@ -34,7 +35,8 @@ private:
 	VkAllocationCallbacks* m_allocator = nullptr;
 	VkDebugReportCallbackEXT m_debugReport = VK_NULL_HANDLE;
 	VkDevice m_logicalDevice;
-	VkQueue m_queue;
+	VkQueue m_graphicsQueue;
+	VkQueue m_presentQueue;
 	uint32_t m_queueFamily = (uint32_t)-1;
 	ImGui_ImplVulkanH_Window m_mainWindowData;
 
@@ -43,18 +45,34 @@ private:
 	int m_minImageCount = 2;
 	bool m_swapChainRebuild = false;
 
+	const std::vector<const char*> m_validationLayers = {
+		"VK_LAYER_KHRONOS_validation"
+	};
 
-	struct UniformBufferObject {
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
+	const std::vector<const char*> m_deviceExtensions = {
+		VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	};
+
+	struct QueueFamilyIndices {
+		std::optional<uint32_t> m_graphicsFamily;
+		std::optional<uint32_t> m_presentFamily;
+
+		bool isComplete() {
+			return m_graphicsFamily.has_value() && m_presentFamily.has_value();
+		}
+	};
+
+	struct SwapChainSupportDetails {
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
 	};
 
 	struct Vertex {
 		glm::vec2 pos;
 		glm::vec3 color;
 
-		/*static VkVertexInputBindingDescription getBindingDescription() {
+		static VkVertexInputBindingDescription getBindingDescription() {
 			VkVertexInputBindingDescription bindingDescription{};
 			bindingDescription.binding = 0;
 			bindingDescription.stride = sizeof(Vertex);
@@ -77,22 +95,35 @@ private:
 			attributeDescriptions[1].offset = offsetof(Vertex, color);
 
 			return attributeDescriptions;
-		}*/
+		}
+	};
+
+	struct UniformBufferObject {
+		alignas(16) glm::mat4 model;
+		alignas(16) glm::mat4 view;
+		alignas(16) glm::mat4 proj;
 	};
 
 	const std::vector<Vertex> vertices = {
-		{{-1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}, // Vertex 0: Bottom-left corner (Red)
-		{{ 1.0f, -1.0f}, {0.0f, 1.0f, 0.0f}}, // Vertex 1: Bottom-right corner (Green)
-		{{ 1.0f,  1.0f}, {0.0f, 0.0f, 1.0f}}, // Vertex 2: Top-right corner (Blue)
-		{{-1.0f,  1.0f}, {1.0f, 1.0f, 1.0f}}  // Vertex 3: Top-left corner (White)
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
 	};
 
 	const std::vector<uint16_t> indices = {
-		0, 1, 2,  // First triangle
-		2, 3, 0   // Second triangle
+		0, 1, 2, 2, 3, 0
 	};
 
-	void createInstance(ImVector<const char*> extensions);
+#ifdef NDEBUG
+	const bool m_enableValidationLayers = false;
+#else
+	const bool m_enableValidationLayers = true;
+#endif
+
+	
+
+	void createInstance();
 	void createSurface(GLFWwindow* window);
 	VkPhysicalDevice pickPhysicalDevice();
 	void selectGraphicsQueueFamily();
@@ -103,11 +134,35 @@ private:
 	void createImguiContext(GLFWwindow* window);
 	void frameRender(ImDrawData* draw_data);
 	void framePresent();
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
+	bool checkValidationLayerSupport();
+	std::vector<const char*> getRequiredExtensions();
+	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
 
+	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+	void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 };
 
-static void check_vk_result(VkResult err);
-static bool IsExtensionAvailable(const ImVector<VkExtensionProperties>& properties, const char* extension);
-static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData);
+inline static void check_vk_result(VkResult err) {
+	if (err == 0)
+		return;
+	fprintf(stderr, "[vulkan] Error: VkResult = %d\n", err);
+	if (err < 0)
+		abort();
+}
+
+inline static bool IsExtensionAvailable(const ImVector<VkExtensionProperties>& properties, const char* extension) {
+	for (const VkExtensionProperties& p : properties)
+		if (strcmp(p.extensionName, extension) == 0)
+			return true;
+	return false;
+}
+
+inline static VKAPI_ATTR VkBool32 VKAPI_CALL debug_report(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType, uint64_t object, size_t location, int32_t messageCode, const char* pLayerPrefix, const char* pMessage, void* pUserData)
+{
+	(void)flags; (void)object; (void)location; (void)messageCode; (void)pUserData; (void)pLayerPrefix; // Unused arguments
+	fprintf(stderr, "[vulkan] Debug report from ObjectType: %i\nMessage: %s\n\n", objectType, pMessage);
+	return VK_FALSE;
+}
 
 #endif
