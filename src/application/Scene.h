@@ -1,8 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include "Camera.h"
-#include "HitableObject.h"
+#include "math/HitableObject.h"
 
 #include <memory>
 #include <vector>
@@ -10,10 +9,9 @@
 
 namespace Scene {
 	struct Scene {
-		Camera m_camera;
 		std::vector<std::shared_ptr<Hitable::HitableObject>> m_objects;
 
-		Scene(const Camera& camera) : m_camera(camera) {}
+		Scene() {}
 
 		void addObject(const std::shared_ptr<Hitable::HitableObject>& object) {
 			m_objects.push_back(object);
