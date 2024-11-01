@@ -32,21 +32,14 @@ Or use [Visual Studio](https://visualstudio.microsoft.com/) with its built-in MS
 
 ### VulkanSDK 1.3
 
-- **Ubuntu**: Install the VulkanSDK using this command:
-```bash
-  sudo apt update && sudo apt install vulkan-sdk
-```
-Alternatively, you can download the [VulkanSDK archive for Linux](https://vulkan.lunarg.com/sdk/home#linux) on the website
+- **Ubuntu**: You can download the [VulkanSDK archive for Linux](https://vulkan.lunarg.com/sdk/home#linux) on the website
 and follow the instructions in the CMakeLists at the root of the project
 
 - **Windows**: Download the [Windows VulkanSDK Binary](https://vulkan.lunarg.com/sdk/home#windows)
 
-## To simply build and run the project, you can run the Following command in Gitbash, PowerShell, or Ubuntu's terminal at the root of the project :
+## To simply build and run the project, you can run the Following command in Ubuntu's terminal at the root of the project :
 ```console
 ./run.sh
 ```
 
-## Or you can open the project in an IDE like Visual Studio using this command at the root of the project:
-```console
-cmake -S . -B build/ -G "Visual Studio 17 2022"
-```
+## Or you can open the project in an IDE like Visual Studio on windows
