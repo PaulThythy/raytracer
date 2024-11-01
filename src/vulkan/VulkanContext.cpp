@@ -268,8 +268,8 @@ void VulkanContext::createFramebuffers() {
 
 void VulkanContext::createGraphicsPipeline() {
     // Load our shader modules in from disk
-    auto vertShaderCode = Config::readFile("C:\\Users\\Pault\\Desktop\\raytracer\\shaders\\build\\vert.spv");
-    auto fragShaderCode = Config::readFile("C:\\Users\\Pault\\Desktop\\raytracer\\shaders\\build\\frag.spv");
+    auto vertShaderCode = Config::readFile("shaders/build/vert.spv");
+    auto fragShaderCode = Config::readFile("shaders/build/frag.spv");
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -428,7 +428,9 @@ void VulkanContext::createImageViews() {
 
 void VulkanContext::createInstance() {
     if (m_enableValidationLayers && !checkValidationLayerSupport()) {
-        throw std::runtime_error("Unable to establish validation layer support!");
+        //throw std::runtime_error("Unable to establish validation layer support!");
+        std::cerr << "Unable to establish validation layer support!" << std::endl;
+        m_enableValidationLayers = false; 
     }
 
     VkApplicationInfo applicationInfo;
@@ -481,7 +483,7 @@ void VulkanContext::createLogicalDevice() {
     int presentFamilyIndex = -1;
 
     for (uint32_t i = 0; i < queueFamilyCount; i++) {
-        // Vérifier le support des opérations graphiques
+        // Vï¿½rifier le support des opï¿½rations graphiques
         if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             graphicsFamilyIndex = i;
         }
@@ -535,7 +537,7 @@ void VulkanContext::createLogicalDevice() {
     }
 
     if (vkCreateDevice(m_physicalDevice, &deviceInfo, nullptr, &m_device) != VK_SUCCESS) {
-        throw std::runtime_error("Impossible de créer le dispositif logique !");
+        throw std::runtime_error("Impossible de crï¿½er le dispositif logique !");
     }
 
     vkGetDeviceQueue(m_device, m_queueIndices.m_graphicsFamily, 0, &m_graphicsQueue);

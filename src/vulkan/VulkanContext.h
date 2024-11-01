@@ -161,13 +161,11 @@ private:
 		0, 1, 2, 2, 3, 0
 	};
 
-/*#ifdef NDEBUG
-	const bool m_enableValidationLayers = false;
+#ifdef NDEBUG
+	bool m_enableValidationLayers = false;
 #else
-	const bool m_enableValidationLayers = true;
-#endif*/
-
-	const bool m_enableValidationLayers = true;
+	bool m_enableValidationLayers = true;
+#endif
 
 	void createInstance();
 	void createLogicalDevice();
