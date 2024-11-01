@@ -20,13 +20,27 @@ void VulkanContext::initVulkan(GLFWwindow* window) {
 }
 
 void VulkanContext::cleanupVulkan() {
-    cleanupSwapchain();
+    VkResult err = vkDeviceWaitIdle(m_device);
+    check_vk_result(err);
 
-    vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+    //cleaning imgui context
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 
-    vkDestroyDescriptorPool(m_device, m_descriptorPool, nullptr);
+    vkFreeCommandBuffers(m_device, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
+    vkFreeCommandBuffers(m_device, m_uiCommandPool, static_cast<uint32_t>(m_uiCommandBuffers.size()), m_uiCommandBuffers.data());
+
+    vkDestroyCommandPool(m_device, m_commandPool, m_allocator);
+    vkDestroyCommandPool(m_device, m_uiCommandPool, m_allocator);
+
+    vkDestroyPipeline(m_device, m_graphicsPipeline, m_allocator);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayout, m_allocator);
+    vkDestroyRenderPass(m_device, m_renderPass, m_allocator);
+    vkDestroyRenderPass(m_device, m_uiRenderPass, m_allocator);
+
+    vkDestroyDescriptorPool(m_device, m_descriptorPool, m_allocator);
+    vkDestroyDescriptorPool(m_device, m_uiDescriptorPool, m_allocator);
 
     //vkDestroyDescriptorSetLayout(m_device, m_descriptorSetLayout, nullptr);
 
@@ -37,34 +51,36 @@ void VulkanContext::cleanupVulkan() {
     //vkFreeMemory(m_device, m_vertexBufferMemory, nullptr);
 
     for (size_t i = 0; i < m_MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], nullptr);
-        vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], nullptr);
-        vkDestroyFence(m_device, m_inFlightFences[i], nullptr);
+        vkDestroySemaphore(m_device, m_renderFinishedSemaphores[i], m_allocator);
+        vkDestroySemaphore(m_device, m_imageAvailableSemaphores[i], m_allocator);
+        vkDestroyFence(m_device, m_inFlightFences[i], m_allocator);
     }
-
-    vkDestroyCommandPool(m_device, m_commandPool, nullptr);
-
-    vkDestroyDevice(m_device, nullptr);
-
-    if (m_enableValidationLayers) {
-        DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, nullptr);
-    }
-
-    VkResult err = vkDeviceWaitIdle(m_device);
-    check_vk_result(err);
-
-    //cleaning imgui context
-    ImGui_ImplVulkan_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
 
     //cleaning vulkan context
     ImGui_ImplVulkanH_DestroyWindow(m_instance, m_device, &m_mainWindowData, m_allocator);
 
     //if using the debug report callback
     auto f_vkDestroyDebugReportCallbackEXT = (PFN_vkDestroyDebugReportCallbackEXT)vkGetInstanceProcAddr(m_instance, "vkDestroyDebugReportCallbackEXT");
-    f_vkDestroyDebugReportCallbackEXT(m_instance, m_debugReport, m_allocator);
+    if (f_vkDestroyDebugReportCallbackEXT != nullptr) {
+        f_vkDestroyDebugReportCallbackEXT(m_instance, m_debugReport, m_allocator);
+    }
 
+    if (m_enableValidationLayers) {
+        DestroyDebugUtilsMessengerEXT(m_instance, m_debugMessenger, m_allocator);
+    }
+
+    for (auto& swapchainFramebuffer : m_swapchainFramebuffers) {
+        vkDestroyFramebuffer(m_device, swapchainFramebuffer, nullptr);
+    }
+
+    for (auto& uiFramebuffer : m_uiFramebuffers) {
+        vkDestroyFramebuffer(m_device, uiFramebuffer, nullptr);
+    }
+
+    for (auto& swapchainImageView : m_swapchainImageViews) {
+        vkDestroyImageView(m_device, swapchainImageView, nullptr);
+    }
+    vkDestroySwapchainKHR(m_device, m_swapchain, m_allocator);
     vkDestroySurfaceKHR(m_instance, m_surface, m_allocator);
     vkDestroyDevice(m_device, m_allocator);
     vkDestroyInstance(m_instance, m_allocator);
@@ -452,33 +468,66 @@ void VulkanContext::createInstance() {
 }
 
 void VulkanContext::createLogicalDevice() {
-    // Setup our Command Queues
+    uint32_t queueFamilyCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, nullptr);
+    if (queueFamilyCount == 0) {
+        throw std::runtime_error("Failed to retrieve queue families.");
+    }
+
+    std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, queueFamilies.data());
+
+    int graphicsFamilyIndex = -1;
+    int presentFamilyIndex = -1;
+
+    for (uint32_t i = 0; i < queueFamilyCount; i++) {
+        // Vérifier le support des opérations graphiques
+        if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+            graphicsFamilyIndex = i;
+        }
+
+        VkBool32 presentSupport = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, m_surface, &presentSupport);
+        if (presentSupport) {
+            presentFamilyIndex = i;
+        }
+
+        if (graphicsFamilyIndex != -1 && presentFamilyIndex != -1) {
+            break;
+        }
+    }
+
+    if (graphicsFamilyIndex == -1 || presentFamilyIndex == -1) {
+        throw std::runtime_error("Unable to find the required queue families !");
+    }
+
+    m_queueIndices.m_graphicsFamily = graphicsFamilyIndex;
+    m_queueIndices.m_presentFamily = presentFamilyIndex;
+
     std::set<uint32_t> uniqueQueueIndices = { m_queueIndices.m_graphicsFamily, m_queueIndices.m_presentFamily };
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
     const float priority = 1.0f;
     for (uint32_t queueIndex : uniqueQueueIndices) {
         VkDeviceQueueCreateInfo queueInfo = {};
         queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueInfo.queueCount = 1;
         queueInfo.queueFamilyIndex = queueIndex;
+        queueInfo.queueCount = 1;
         queueInfo.pQueuePriorities = &priority;
         queueCreateInfos.push_back(queueInfo);
     }
 
     VkDeviceCreateInfo deviceInfo = {};
     deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
     deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
     deviceInfo.pQueueCreateInfos = queueCreateInfos.data();
-
     deviceInfo.enabledExtensionCount = static_cast<uint32_t>(m_deviceExtensions.size());
     deviceInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
 
-    VkPhysicalDeviceFeatures physicalDeviceFeatures = {}; // TODO Specify features
+    VkPhysicalDeviceFeatures physicalDeviceFeatures = {};
     deviceInfo.pEnabledFeatures = &physicalDeviceFeatures;
 
     if (m_enableValidationLayers) {
-        deviceInfo.enabledLayerCount = m_validationLayers.size();
+        deviceInfo.enabledLayerCount = static_cast<uint32_t>(m_validationLayers.size());
         deviceInfo.ppEnabledLayerNames = m_validationLayers.data();
     }
     else {
@@ -486,18 +535,15 @@ void VulkanContext::createLogicalDevice() {
     }
 
     if (vkCreateDevice(m_physicalDevice, &deviceInfo, nullptr, &m_device) != VK_SUCCESS) {
-        throw std::runtime_error("Unable to create logical device!");
+        throw std::runtime_error("Impossible de créer le dispositif logique !");
     }
 
-    // Grab the device queue handles for the graphics and present queues after logical device creation
-    // queueIndex = 0 because we are only going to use one graphics queue per queue family
     vkGetDeviceQueue(m_device, m_queueIndices.m_graphicsFamily, 0, &m_graphicsQueue);
     vkGetDeviceQueue(m_device, m_queueIndices.m_presentFamily, 0, &m_presentQueue);
 }
 
 void VulkanContext::createRenderPass() {
-    // Configure a color attachment that will determine how the framebuffer is used
-    VkAttachmentDescription colorAttachment = {};
+    VkAttachmentDescription colorAttachment{};
     colorAttachment.format = m_swapchainImageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
@@ -505,19 +551,18 @@ void VulkanContext::createRenderPass() {
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Comes before UI rendering now
+    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;;
 
-    VkAttachmentReference colorAttachmentRef = {};
+    VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-    // Define a subpass that is attached to the graphics pipeline
-    VkSubpassDescription subpassDescription = {};
-    subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpassDescription.colorAttachmentCount = 1;
-    subpassDescription.pColorAttachments = &colorAttachmentRef;
+    VkSubpassDescription subpass{};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &colorAttachmentRef;
 
-    VkSubpassDependency dependency = {};
+    VkSubpassDependency dependency{};
     dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
     dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -525,17 +570,16 @@ void VulkanContext::createRenderPass() {
     dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
-    // Create the info for the render pass
-    VkRenderPassCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    createInfo.attachmentCount = 1;
-    createInfo.pAttachments = &colorAttachment;
-    createInfo.subpassCount = 1;
-    createInfo.pSubpasses = &subpassDescription;
-    createInfo.dependencyCount = 1;
-    createInfo.pDependencies = &dependency;
+    VkRenderPassCreateInfo renderPassInfo{};
+    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    renderPassInfo.attachmentCount = 1;
+    renderPassInfo.pAttachments = &colorAttachment;
+    renderPassInfo.subpassCount = 1;
+    renderPassInfo.pSubpasses = &subpass;
+    renderPassInfo.dependencyCount = 1;
+    renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(m_device, &createInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
+    if (vkCreateRenderPass(m_device, &renderPassInfo, nullptr, &m_renderPass) != VK_SUCCESS) {
         throw std::runtime_error("Could not create render pass!");
     }
 }
@@ -977,6 +1021,7 @@ void VulkanContext::createImguiContext(GLFWwindow* window) {
     init_info.DescriptorPool = m_uiDescriptorPool;
     init_info.MinImageCount = m_imageCount;
     init_info.ImageCount = m_imageCount;
+    init_info.RenderPass = m_uiRenderPass;
     ImGui_ImplVulkan_Init(&init_info);
 }
 

@@ -179,7 +179,6 @@ private:
 	void createFramebuffers();
 	void createDescriptorPool();
 	void createSurface(GLFWwindow* window);
-	void mainLoop();
 	VkPhysicalDevice pickPhysicalDevice();
 	VkShaderModule createShaderModule(const std::vector<char>& shaderCode);
 	void createSyncObjects();
