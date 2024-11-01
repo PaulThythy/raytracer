@@ -73,6 +73,9 @@ add_executable(${PROJECT_NAME} ${sources} ${headers} ${IMGUI_DIR}/backends/imgui
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC -DImTextureID=ImU64)
 
+file(TO_CMAKE_PATH "${PROJECT_SOURCE_DIR}/shaders" SHADER_DIR)
+target_compile_definitions(${PROJECT_NAME} PRIVATE SHADER_DIR="${SHADER_DIR}")
+
 ##################
 ## shaders #######
 ##################

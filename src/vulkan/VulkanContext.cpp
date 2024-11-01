@@ -268,8 +268,8 @@ void VulkanContext::createFramebuffers() {
 
 void VulkanContext::createGraphicsPipeline() {
     // Load our shader modules in from disk
-    auto vertShaderCode = Config::readFile("shaders/build/vert.spv");
-    auto fragShaderCode = Config::readFile("shaders/build/frag.spv");
+    auto vertShaderCode = Config::readFile(std::string(SHADER_DIR) + "/build/vert.spv");
+    auto fragShaderCode = Config::readFile(std::string(SHADER_DIR) + "/build/frag.spv");
 
     VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
     VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
