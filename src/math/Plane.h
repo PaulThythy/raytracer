@@ -2,7 +2,7 @@
 #define PLANE_H
 
 #include "Ray.h"
-#include "../HitableObject.h"
+#include "HitableObject.h"
 
 #include <glm/glm.hpp>
 

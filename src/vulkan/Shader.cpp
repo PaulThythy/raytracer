@@ -1,7 +1,7 @@
 #include <stdexcept>
 
 #include "Shader.h"
-#include "../globals/globals.h"
+#include "globals/globals.h"
 
 
 Shader::Shader() {
