@@ -34,7 +34,6 @@ private:
 
 	VkQueue m_graphicsQueue;
 	VkQueue m_presentQueue;
-	uint32_t m_queueFamily = (uint32_t)-1;
 
 	VkSurfaceKHR m_surface;
 
@@ -51,7 +50,6 @@ private:
 
 	VkPipeline m_graphicsPipeline;
 	VkPipelineLayout m_pipelineLayout;
-	VkPipelineCache m_pipelineCache;
 
 	VkCommandPool m_commandPool;
 	VkCommandPool m_uiCommandPool;
@@ -77,7 +75,6 @@ private:
 
 	std::vector<const char*> m_requiredExtensions;
 
-	ImGui_ImplVulkanH_Window* m_wd;
 	VkAllocationCallbacks* m_allocator = nullptr;
 	VkDebugReportCallbackEXT m_debugReport = VK_NULL_HANDLE;
 	VkDebugUtilsMessengerEXT m_debugMessenger;
@@ -87,8 +84,6 @@ private:
 	ImGuiIO* m_io;
 
 	uint32_t m_imageCount = 0;
-	int m_minImageCount = 2;
-	bool m_swapchainRebuild = false;
 	const int m_MAX_FRAMES_IN_FLIGHT = 2;
 	uint32_t m_currentFrame = 0;
 	bool m_framebufferResized = false;
