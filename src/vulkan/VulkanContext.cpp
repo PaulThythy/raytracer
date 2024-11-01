@@ -748,8 +748,6 @@ void VulkanContext::createUICommandPool(VkCommandPool* cmdPool, VkCommandPoolCre
     }
 }
 
-// Copied this code from DearImgui's setup:
-// https://github.com/ocornut/imgui/blob/master/examples/example_glfw_vulkan/main.cpp
 void VulkanContext::createUIDescriptorPool() {
     VkDescriptorPoolSize pool_sizes[] = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
