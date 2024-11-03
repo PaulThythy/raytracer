@@ -1,6 +1,6 @@
-#include "VulkanContext.h"
+#include "VkRenderer.h"
 
-void VulkanContext::initVulkan(GLFWwindow* window) {
+void VkRenderer::initVulkan(GLFWwindow* window) {
     createInstance();
     setupDebugMessenger();
     createSurface(window);
@@ -19,7 +19,7 @@ void VulkanContext::initVulkan(GLFWwindow* window) {
     createImguiContext(window);
 }
 
-void VulkanContext::cleanupVulkan() {
+void VkRenderer::cleanupVulkan() {
     VkResult err = vkDeviceWaitIdle(m_device);
     check_vk_result(err);
 
@@ -86,7 +86,7 @@ void VulkanContext::cleanupVulkan() {
     vkDestroyInstance(m_instance, m_allocator);
 }
 
-VkCommandBuffer VulkanContext::beginSingleTimeCommands(VkCommandPool cmdPool) {
+VkCommandBuffer VkRenderer::beginSingleTimeCommands(VkCommandPool cmdPool) {
     VkCommandBufferAllocateInfo allocInfo = {};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
@@ -107,7 +107,7 @@ VkCommandBuffer VulkanContext::beginSingleTimeCommands(VkCommandPool cmdPool) {
     return commandBuffer;
 }
 
-bool VulkanContext::checkDeviceExtensions(VkPhysicalDevice device) {
+bool VkRenderer::checkDeviceExtensions(VkPhysicalDevice device) {
     uint32_t extensionsCount = 0;
     if (vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("Unable to enumerate device extensions!");
@@ -124,7 +124,7 @@ bool VulkanContext::checkDeviceExtensions(VkPhysicalDevice device) {
     return requiredDeviceExtensions.empty();
 }
 
-bool VulkanContext::checkValidationLayerSupport() {
+bool VkRenderer::checkValidationLayerSupport() {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
@@ -148,7 +148,7 @@ bool VulkanContext::checkValidationLayerSupport() {
 }
 
 // Destroys all the resources associated with swapchain recreation
-void VulkanContext::cleanupSwapchain() {
+void VkRenderer::cleanupSwapchain() {
     for (auto& swapchainFramebuffer : m_swapchainFramebuffers) {
         vkDestroyFramebuffer(m_device, swapchainFramebuffer, nullptr);
     }
@@ -166,7 +166,7 @@ void VulkanContext::cleanupSwapchain() {
     vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
 }
 
-void VulkanContext::cleanupUIResources() {
+void VkRenderer::cleanupUIResources() {
     for (auto framebuffer : m_uiFramebuffers) {
         vkDestroyFramebuffer(m_device, framebuffer, nullptr);
     }
@@ -174,7 +174,7 @@ void VulkanContext::cleanupUIResources() {
     vkFreeCommandBuffers(m_device, m_uiCommandPool, static_cast<uint32_t>(m_uiCommandBuffers.size()), m_uiCommandBuffers.data());
 }
 
-void VulkanContext::createCommandBuffers() {
+void VkRenderer::createCommandBuffers() {
     m_commandBuffers.resize(m_swapchainFramebuffers.size());
 
     VkCommandBufferAllocateInfo allocInfo = {};
@@ -219,7 +219,7 @@ void VulkanContext::createCommandBuffers() {
     }
 }
 
-void VulkanContext::createCommandPool() {
+void VkRenderer::createCommandPool() {
     VkCommandPoolCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     createInfo.queueFamilyIndex = m_queueIndices.m_graphicsFamily;
@@ -229,7 +229,7 @@ void VulkanContext::createCommandPool() {
     }
 }
 
-void VulkanContext::createDescriptorPool() {
+void VkRenderer::createDescriptorPool() {
     VkDescriptorPoolSize poolSize = {};
     poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSize.descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
@@ -245,7 +245,7 @@ void VulkanContext::createDescriptorPool() {
     }
 }
 
-void VulkanContext::createFramebuffers() {
+void VkRenderer::createFramebuffers() {
     m_swapchainFramebuffers.resize(m_swapchainImageViews.size());
     for (size_t i = 0; i < m_swapchainImageViews.size(); ++i) {
         // We need to attach an image view to the frame buffer for presentation purposes
@@ -266,7 +266,7 @@ void VulkanContext::createFramebuffers() {
     }
 }
 
-void VulkanContext::createGraphicsPipeline() {
+void VkRenderer::createGraphicsPipeline() {
     // Load our shader modules in from disk
     auto vertShaderCode = Config::readFile(std::string(SHADER_DIR) + "/build/vert.spv");
     auto fragShaderCode = Config::readFile(std::string(SHADER_DIR) + "/build/frag.spv");
@@ -402,7 +402,7 @@ void VulkanContext::createGraphicsPipeline() {
     vkDestroyShaderModule(m_device, fragShaderModule, nullptr);
 }
 
-void VulkanContext::createImageViews() {
+void VkRenderer::createImageViews() {
     m_swapchainImageViews.resize(m_swapchainImages.size());
     for (size_t i = 0; i < m_swapchainImages.size(); ++i) {
         VkImageViewCreateInfo createInfo = {};
@@ -426,7 +426,7 @@ void VulkanContext::createImageViews() {
     }
 }
 
-void VulkanContext::createInstance() {
+void VkRenderer::createInstance() {
     if (m_enableValidationLayers && !checkValidationLayerSupport()) {
         //throw std::runtime_error("Unable to establish validation layer support!");
         std::cerr << "Unable to establish validation layer support!" << std::endl;
@@ -469,7 +469,7 @@ void VulkanContext::createInstance() {
     }
 }
 
-void VulkanContext::createLogicalDevice() {
+void VkRenderer::createLogicalDevice() {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, nullptr);
     if (queueFamilyCount == 0) {
@@ -544,7 +544,7 @@ void VulkanContext::createLogicalDevice() {
     vkGetDeviceQueue(m_device, m_queueIndices.m_presentFamily, 0, &m_presentQueue);
 }
 
-void VulkanContext::createRenderPass() {
+void VkRenderer::createRenderPass() {
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = m_swapchainImageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -586,7 +586,7 @@ void VulkanContext::createRenderPass() {
     }
 }
 
-VkShaderModule VulkanContext::createShaderModule(const std::vector<char>& shaderCode) {
+VkShaderModule VkRenderer::createShaderModule(const std::vector<char>& shaderCode) {
     VkShaderModuleCreateInfo createInfo = {};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     createInfo.codeSize = shaderCode.size();
@@ -601,13 +601,13 @@ VkShaderModule VulkanContext::createShaderModule(const std::vector<char>& shader
 }
 
 // For cross-platform compatibility we let GLFW take care of the surface creation
-void VulkanContext::createSurface(GLFWwindow* window) {
+void VkRenderer::createSurface(GLFWwindow* window) {
     if (glfwCreateWindowSurface(m_instance, window, nullptr, &m_surface) != VK_SUCCESS) {
         throw std::runtime_error("Unable to create window surface!");
     }
 }
 
-void VulkanContext::createSwapchain() {
+void VkRenderer::createSwapchain() {
     SwapChainSupportDetails configuration = querySwapchainSupport(m_physicalDevice);
 
     VkSurfaceFormatKHR surfaceFormat = pickSwapchainSurfaceFormat(configuration.m_formats);
@@ -662,7 +662,7 @@ void VulkanContext::createSwapchain() {
     vkGetSwapchainImagesKHR(m_device, m_swapchain, &swapchainCount, m_swapchainImages.data());
 }
 
-void VulkanContext::createSyncObjects() {
+void VkRenderer::createSyncObjects() {
     // Create our semaphores and fences for synchronizing the GPU and CPU
     m_imageAvailableSemaphores.resize(m_MAX_FRAMES_IN_FLIGHT);
     m_renderFinishedSemaphores.resize(m_MAX_FRAMES_IN_FLIGHT);
@@ -691,7 +691,7 @@ void VulkanContext::createSyncObjects() {
     }
 }
 
-void VulkanContext::createUICommandBuffers() {
+void VkRenderer::createUICommandBuffers() {
     m_uiCommandBuffers.resize(m_swapchainImageViews.size());
 
     VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
@@ -705,7 +705,7 @@ void VulkanContext::createUICommandBuffers() {
     }
 }
 
-void VulkanContext::recordUICommands(uint32_t bufferIdx) {
+void VkRenderer::recordUICommands(uint32_t bufferIdx) {
     VkCommandBufferBeginInfo cmdBufferBegin = {};
     cmdBufferBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cmdBufferBegin.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -737,7 +737,7 @@ void VulkanContext::recordUICommands(uint32_t bufferIdx) {
     }
 }
 
-void VulkanContext::createUICommandPool(VkCommandPool* cmdPool, VkCommandPoolCreateFlags flags) {
+void VkRenderer::createUICommandPool(VkCommandPool* cmdPool, VkCommandPoolCreateFlags flags) {
     VkCommandPoolCreateInfo commandPoolCreateInfo = {};
     commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     commandPoolCreateInfo.queueFamilyIndex = m_queueIndices.m_graphicsFamily;
@@ -748,7 +748,7 @@ void VulkanContext::createUICommandPool(VkCommandPool* cmdPool, VkCommandPoolCre
     }
 }
 
-void VulkanContext::createUIDescriptorPool() {
+void VkRenderer::createUIDescriptorPool() {
     VkDescriptorPoolSize pool_sizes[] = {
         { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
@@ -774,7 +774,7 @@ void VulkanContext::createUIDescriptorPool() {
     }
 }
 
-void VulkanContext::createUIFramebuffers() {
+void VkRenderer::createUIFramebuffers() {
     // Create some UI framebuffers. These will be used in the render pass for the UI
     m_uiFramebuffers.resize(m_swapchainImages.size());
     VkImageView attachment[1];
@@ -794,7 +794,7 @@ void VulkanContext::createUIFramebuffers() {
     }
 }
 
-void VulkanContext::createUIRenderPass() {
+void VkRenderer::createUIRenderPass() {
     // Create an attachment description for the render pass
     VkAttachmentDescription attachmentDescription = {};
     attachmentDescription.format = m_swapchainImageFormat;
@@ -843,7 +843,7 @@ void VulkanContext::createUIRenderPass() {
     }
 }
 
-void VulkanContext::drawFrame(GLFWwindow* window) {
+void VkRenderer::drawFrame(GLFWwindow* window) {
     // Sync for next frame. Fences also need to be manually reset unlike semaphores, which is done here
     vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
 
@@ -919,7 +919,7 @@ void VulkanContext::drawFrame(GLFWwindow* window) {
     m_currentFrame = (m_currentFrame + 1) % m_MAX_FRAMES_IN_FLIGHT;
 }
 
-void VulkanContext::drawUI() {
+void VkRenderer::drawUI() {
     // Start the Dear ImGui frame
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -943,7 +943,7 @@ void VulkanContext::drawUI() {
     ImGui::Render();
 }
 
-void VulkanContext::endSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool cmdPool) {
+void VkRenderer::endSingleTimeCommands(VkCommandBuffer commandBuffer, VkCommandPool cmdPool) {
     vkEndCommandBuffer(commandBuffer);
 
     VkSubmitInfo submitInfo{};
@@ -957,7 +957,7 @@ void VulkanContext::endSingleTimeCommands(VkCommandBuffer commandBuffer, VkComma
     vkFreeCommandBuffers(m_device, cmdPool, 1, &commandBuffer);
 }
 
-void VulkanContext::getDeviceQueueIndices() {
+void VkRenderer::getDeviceQueueIndices() {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(m_physicalDevice, &queueFamilyCount, nullptr);
 
@@ -982,7 +982,7 @@ void VulkanContext::getDeviceQueueIndices() {
     }
 }
 
-std::vector<const char*> VulkanContext::getRequiredExtensions() const {
+std::vector<const char*> VkRenderer::getRequiredExtensions() const {
     uint32_t glfwExtensionCount = 0;
     const char** glfwRequiredExtensions;
     glfwRequiredExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
@@ -998,7 +998,7 @@ std::vector<const char*> VulkanContext::getRequiredExtensions() const {
     return extensions;
 }
 
-void VulkanContext::createImguiContext(GLFWwindow* window) {
+void VkRenderer::createImguiContext(GLFWwindow* window) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
@@ -1025,7 +1025,7 @@ void VulkanContext::createImguiContext(GLFWwindow* window) {
     ImGui_ImplVulkan_Init(&init_info);
 }
 
-bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
+bool VkRenderer::isDeviceSuitable(VkPhysicalDevice device) {
     VkPhysicalDeviceProperties properties;
     vkGetPhysicalDeviceProperties(device, &properties);
     bool extensionsSupported = checkDeviceExtensions(device);
@@ -1040,7 +1040,7 @@ bool VulkanContext::isDeviceSuitable(VkPhysicalDevice device) {
     return swapChainAdequate && extensionsSupported && properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
 }
 
-VkPhysicalDevice VulkanContext::pickPhysicalDevice() {
+VkPhysicalDevice VkRenderer::pickPhysicalDevice() {
     uint32_t physicalDeviceCount = 0;
     if (vkEnumeratePhysicalDevices(m_instance, &physicalDeviceCount, nullptr) != VK_SUCCESS) {
         throw std::runtime_error("Unable to enumerate physical devices!");
@@ -1075,7 +1075,7 @@ VkPhysicalDevice VulkanContext::pickPhysicalDevice() {
     return physicalDevices[0];
 }
 
-VkExtent2D VulkanContext::pickSwapchainExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities) {
+VkExtent2D VkRenderer::pickSwapchainExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities) {
     if (surfaceCapabilities.currentExtent.width != UINT32_MAX) {
         return surfaceCapabilities.currentExtent;
     }
@@ -1089,7 +1089,7 @@ VkExtent2D VulkanContext::pickSwapchainExtent(const VkSurfaceCapabilitiesKHR& su
     }
 }
 
-VkPresentModeKHR VulkanContext::pickSwapchainPresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
+VkPresentModeKHR VkRenderer::pickSwapchainPresentMode(const std::vector<VkPresentModeKHR>& presentModes) {
     // Look for triple-buffering present mode if available
     for (VkPresentModeKHR availableMode : presentModes) {
         if (availableMode == VK_PRESENT_MODE_MAILBOX_KHR) {
@@ -1101,7 +1101,7 @@ VkPresentModeKHR VulkanContext::pickSwapchainPresentMode(const std::vector<VkPre
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkSurfaceFormatKHR VulkanContext::pickSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
+VkSurfaceFormatKHR VkRenderer::pickSwapchainSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats) {
     for (VkSurfaceFormatKHR availableFormat : formats) {
         if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB &&
             availableFormat.colorSpace == VK_COLORSPACE_SRGB_NONLINEAR_KHR) {
@@ -1114,7 +1114,7 @@ VkSurfaceFormatKHR VulkanContext::pickSwapchainSurfaceFormat(const std::vector<V
     return formats[0];
 }
 
-VulkanContext::SwapChainSupportDetails VulkanContext::querySwapchainSupport(const VkPhysicalDevice& device) {
+VkRenderer::SwapChainSupportDetails VkRenderer::querySwapchainSupport(const VkPhysicalDevice& device) {
     SwapChainSupportDetails config = {};
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, m_surface, &config.m_capabilities);
 
@@ -1137,7 +1137,7 @@ VulkanContext::SwapChainSupportDetails VulkanContext::querySwapchainSupport(cons
 
 // In case the swapchain is invalidated, i.e. during window resizing,
 // we need to implement a mechanism to recreate it
-void VulkanContext::recreateSwapchain(GLFWwindow* window) {
+void VkRenderer::recreateSwapchain(GLFWwindow* window) {
     int width = 0, height = 0;
     glfwGetFramebufferSize(window, &width, &height);
     while (width == 0 || height == 0) {
@@ -1166,7 +1166,7 @@ void VulkanContext::recreateSwapchain(GLFWwindow* window) {
     createUIFramebuffers();
 }
 
-void VulkanContext::mainLoop(GLFWwindow* window) {
+void VkRenderer::mainLoop(GLFWwindow* window) {
     drawUI();
     drawFrame(window);
 
@@ -1174,7 +1174,7 @@ void VulkanContext::mainLoop(GLFWwindow* window) {
     vkDeviceWaitIdle(m_device);
 }
 
-void VulkanContext::setupDebugMessenger() {
+void VkRenderer::setupDebugMessenger() {
     if (!m_enableValidationLayers) {
         return;
     }

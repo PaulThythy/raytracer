@@ -9,7 +9,7 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "vulkan/VulkanContext.h"
+#include "vulkan/VkRenderer.h"
 #include "globals/globals.h"
 
 class Application {
@@ -23,7 +23,7 @@ public:
 
     bool framebufferResized = false;
 private:
-    VulkanContext m_vulkanCtx;
+    VkRenderer m_vulkanCtx;
 
     void initGlfw();
     void initVulkanCtx(GLFWwindow* window);

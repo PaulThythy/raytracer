@@ -1,5 +1,5 @@
-#ifndef VULKAN_CONTEXT_H
-#define VULKAN_CONTEXT_H
+#ifndef VKRENDERER_H
+#define VKRENDERER_H
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -21,7 +21,7 @@
 
 #include "globals/globals.h"
 
-class VulkanContext {
+class VkRenderer {
 public:
 	void initVulkan(GLFWwindow* window);
 	void mainLoop(GLFWwindow* window);
