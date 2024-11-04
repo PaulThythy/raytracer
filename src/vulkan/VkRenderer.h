@@ -115,7 +115,7 @@ private:
 
 	struct Vertex {
 		glm::vec3 pos;   
-		glm::vec3 normal;  
+		glm::vec3 color;  
 		//glm::vec2 texCoord; 
 
 		static VkVertexInputBindingDescription getBindingDescription() {
@@ -138,7 +138,7 @@ private:
 			attributeDescriptions[1].binding = 0;
 			attributeDescriptions[1].location = 1;
 			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, normal);
+			attributeDescriptions[1].offset = offsetof(Vertex, color);
 
 			/*attributeDescriptions[2].binding = 0;
 			attributeDescriptions[2].location = 2;
@@ -155,18 +155,21 @@ private:
 		alignas(16) glm::mat4 m_proj;
 	};
 
+
 	const std::vector<Vertex> m_vertices = {
-		{{0.0f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},  
-		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},  
-		{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}   
+		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},  
+    	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}},  
+    	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, 0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}   
 	};
 
 	const std::vector<uint32_t> m_indices = {
-		0, 1, 2  
+		0, 1, 2, 2, 3, 0  
 	};
 
 	float m_deltaTime = 0.0f;
 	float m_lastFrameTime = 0.0f;
+	float m_totalTime = 0.0f;
 
 #ifdef NDEBUG
 	bool m_enableValidationLayers = false;
@@ -197,7 +200,7 @@ private:
 	void drawUI();
 	void createDescriptorSetLayout();
 	void createDescriptorSets();
-	void initMVP();
+	void updateUniformBuffer(uint32_t currentImage, float totalTime);
 	void createUniformBuffers();
 	void createVertexBuffer(const std::vector<VkRenderer::Vertex>& verticies);
 	void createIndexBuffer(const std::vector<uint32_t>& indices);

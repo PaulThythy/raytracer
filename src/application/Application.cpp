@@ -19,7 +19,7 @@ void Application::run() {
 		m_vulkanCtx.mainLoop(m_window);
 	}
 
-	//vkDeviceWaitIdle(logicalDevice);
+	//vkDeviceWaitIdle(m_vulkanCtx.m_device);
 }
 
 void Application::initGlfw() {

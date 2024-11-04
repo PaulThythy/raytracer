@@ -14,7 +14,6 @@ void VkRenderer::initVulkan(GLFWwindow* window) {
     createCommandPool();
     createUICommandPool();
     createFramebuffers();
-    initMVP();
     createVertexBuffer(m_vertices);
     createIndexBuffer(m_indices);
     createUniformBuffers();
@@ -600,18 +599,17 @@ void VkRenderer::createDescriptorSetLayout() {
     }
 }
 
-void VkRenderer::initMVP() {
-    VkRenderer::UniformBufferObject ubo{};
-    ubo.m_model = glm::mat4(1.0f); // Identity matrix
+void VkRenderer::updateUniformBuffer(uint32_t currentImage, float totalTime) {
+    UniformBufferObject ubo{};
+    ubo.m_model = glm::rotate(glm::mat4(1.0f), totalTime * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.m_view = glm::lookAt(
-        glm::vec3(2.0f, 2.0f, 2.0f),        //look from
-        glm::vec3(0.0f, 0.0f, 0.0f),        //look at
-        glm::vec3(0.0f, 0.0f, 1.0f));       //up
-    ubo.m_proj = glm::perspective(glm::radians(45.0f), m_swapchainExtent.width / (float)m_swapchainExtent.height, 0.1f, 10.0f);
-    ubo.m_proj[1][1] *= -1; // Vulkan uses inverted Y in clip coordinates
+        glm::vec3(2.0f, 2.0f, 2.0f), 
+        glm::vec3(0.0f, 0.0f, 0.0f), 
+        glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.m_proj = glm::perspective(glm::radians(45.0f), m_swapchainExtent.width / (float) m_swapchainExtent.height, 0.1f, 10.0f);
+    ubo.m_proj[1][1] *= -1;
 
-    //TODO update uniform buffer objects
-
+    memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 void VkRenderer::createUniformBuffers() {
@@ -1006,10 +1004,8 @@ void VkRenderer::drawFrame(GLFWwindow* window) {
     // Calculate deltaTime
     float currentFrameTime = static_cast<float>(glfwGetTime());
     m_deltaTime = currentFrameTime - m_lastFrameTime;
+    m_totalTime += m_deltaTime;
     m_lastFrameTime = currentFrameTime;
-
-    // TODO Update transformations (example: rotation over time)
-
 
     // Sync for next frame. Fences also need to be manually reset unlike semaphores, which is done here
     vkWaitForFences(m_device, 1, &m_inFlightFences[m_currentFrame], VK_TRUE, UINT64_MAX);
@@ -1026,6 +1022,8 @@ void VkRenderer::drawFrame(GLFWwindow* window) {
     else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
         throw std::runtime_error("Unable to acquire swap chain!");
     }
+
+    updateUniformBuffer(imageIndex, m_totalTime);
 
     // Check if a previous frame is using this image (i.e. there is its fence to wait on)
     if (m_imagesInFlight[imageIndex] != VK_NULL_HANDLE) {
