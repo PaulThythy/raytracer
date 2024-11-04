@@ -56,17 +56,21 @@ private:
 	std::vector<VkCommandBuffer> m_commandBuffers;
 	std::vector<VkCommandBuffer> m_uiCommandBuffers;
 
-	/*VkBuffer m_vertexBuffer;
+	VkBuffer m_vertexBuffer;
 	VkDeviceMemory m_vertexBufferMemory;
 	VkBuffer m_indexBuffer;
 	VkDeviceMemory m_indexBufferMemory;
 
 	std::vector<VkBuffer> m_uniformBuffers;
 	std::vector<VkDeviceMemory> m_uniformBuffersMemory;
-	std::vector<void*> m_uniformBuffersMapped;*/
+	std::vector<void*> m_uniformBuffersMapped;
 
 	VkDescriptorPool m_descriptorPool;
 	VkDescriptorPool m_uiDescriptorPool;
+
+	VkDescriptorSetLayout m_descriptorSetLayout;
+
+	std::vector<VkDescriptorSet> m_descriptorSets;
 
 	std::vector<VkSemaphore> m_imageAvailableSemaphores;
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
@@ -110,8 +114,9 @@ private:
 	};
 
 	struct Vertex {
-		glm::vec2 pos;
-		glm::vec3 color;
+		glm::vec3 pos;   
+		glm::vec3 normal;  
+		//glm::vec2 texCoord; 
 
 		static VkVertexInputBindingDescription getBindingDescription() {
 			VkVertexInputBindingDescription bindingDescription{};
@@ -127,34 +132,41 @@ private:
 
 			attributeDescriptions[0].binding = 0;
 			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
 			attributeDescriptions[0].offset = offsetof(Vertex, pos);
 
 			attributeDescriptions[1].binding = 0;
 			attributeDescriptions[1].location = 1;
 			attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, color);
+			attributeDescriptions[1].offset = offsetof(Vertex, normal);
+
+			/*attributeDescriptions[2].binding = 0;
+			attributeDescriptions[2].location = 2;
+			attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
+			attributeDescriptions[2].offset = offsetof(Vertex, texCoord);*/
 
 			return attributeDescriptions;
 		}
 	};
 
 	struct UniformBufferObject {
-		alignas(16) glm::mat4 model;
-		alignas(16) glm::mat4 view;
-		alignas(16) glm::mat4 proj;
+		alignas(16) glm::mat4 m_model;
+		alignas(16) glm::mat4 m_view;
+		alignas(16) glm::mat4 m_proj;
 	};
 
-	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-		{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-		{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	const std::vector<Vertex> m_vertices = {
+		{{0.0f, -0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},  
+		{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}},  
+		{{-0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}}   
 	};
 
-	const std::vector<uint16_t> indices = {
-		0, 1, 2, 2, 3, 0
+	const std::vector<uint32_t> m_indices = {
+		0, 1, 2  
 	};
+
+	float m_deltaTime = 0.0f;
+	float m_lastFrameTime = 0.0f;
 
 #ifdef NDEBUG
 	bool m_enableValidationLayers = false;
@@ -176,13 +188,22 @@ private:
 	VkShaderModule createShaderModule(const std::vector<char>& shaderCode);
 	void createSyncObjects();
 	void createUICommandBuffers();
-	void recordUICommands(uint32_t bufferIdx);
-	void createUICommandPool(VkCommandPool* cmdPool, VkCommandPoolCreateFlags flags);
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void createUICommandPool();
 	void createUIDescriptorPool();
 	void createUIFramebuffers();
 	void createUIRenderPass();
 	void drawFrame(GLFWwindow* window);
 	void drawUI();
+	void createDescriptorSetLayout();
+	void createDescriptorSets();
+	void initMVP();
+	void createUniformBuffers();
+	void createVertexBuffer(const std::vector<VkRenderer::Vertex>& verticies);
+	void createIndexBuffer(const std::vector<uint32_t>& indices);
+	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
+	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);
+	uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 	void getDeviceQueueIndices();
 	VkExtent2D pickSwapchainExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
 	VkCommandBuffer beginSingleTimeCommands(VkCommandPool cmdPool);

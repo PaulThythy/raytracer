@@ -1,21 +1,22 @@
 #version 450
-#extension GL_ARB_separate_shader_objects : enable
 
-layout(location = 0) out vec3 fragColor;
+layout(location = 0) in vec3 inPos;
+layout(location = 1) in vec3 inNormal;
 
-vec2 positions[3] = vec2[](
-    vec2(0.0, -0.5),
-    vec2(0.5, 0.5),
-    vec2(-0.5, 0.5)
-);
+layout(binding = 0) uniform UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+} ubo;
 
-vec3 colors[3] = vec3[](
-    vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 1.0, 0.0),
-    vec3(0.0, 0.0, 1.0)
-);
+layout(location = 0) out vec3 fragPos;
+layout(location = 1) out vec3 fragNormal;
 
 void main() {
-    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
-    fragColor = colors[gl_VertexIndex];
+    // Apply the MVP transformation to get the final position
+    vec4 worldPos = ubo.model * vec4(inPos, 1.0);
+    fragPos = vec3(worldPos);
+    fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal; // Correct normals
+
+    gl_Position = ubo.proj * ubo.view * worldPos;
 }
