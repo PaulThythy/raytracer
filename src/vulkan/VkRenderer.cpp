@@ -979,6 +979,38 @@ void VkRenderer::createUIRenderPass() {
     }
 }
 
+void VkRenderer::recordUICommands(uint32_t imageIndex) {
+    VkCommandBufferBeginInfo cmdBufferBegin = {};
+    cmdBufferBegin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBufferBegin.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    if (vkBeginCommandBuffer(m_uiCommandBuffers[imageIndex], &cmdBufferBegin) != VK_SUCCESS) {
+        throw std::runtime_error("Unable to start recording UI command buffer!");
+    }
+
+    VkClearValue clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+    VkRenderPassBeginInfo renderPassBeginInfo = {};
+    renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    renderPassBeginInfo.renderPass = m_uiRenderPass;
+    renderPassBeginInfo.framebuffer = m_uiFramebuffers[imageIndex];
+    renderPassBeginInfo.renderArea.extent.width = m_swapchainExtent.width;
+    renderPassBeginInfo.renderArea.extent.height = m_swapchainExtent.height;
+    renderPassBeginInfo.clearValueCount = 1;
+    renderPassBeginInfo.pClearValues = &clearColor;
+
+    vkCmdBeginRenderPass(m_uiCommandBuffers[imageIndex], &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    // Grab and record the draw data for Dear Imgui
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_uiCommandBuffers[imageIndex]);
+
+    // End and submit render pass
+    vkCmdEndRenderPass(m_uiCommandBuffers[imageIndex]);
+
+    if (vkEndCommandBuffer(m_uiCommandBuffers[imageIndex]) != VK_SUCCESS) {
+        throw std::runtime_error("Failed to record command buffers!");
+    }
+}
+
 void VkRenderer::drawFrame(GLFWwindow* window) {
     // Calculate deltaTime
     float currentFrameTime = static_cast<float>(glfwGetTime());
@@ -1017,8 +1049,8 @@ void VkRenderer::drawFrame(GLFWwindow* window) {
     recordCommandBuffer(m_commandBuffers[imageIndex], imageIndex);
 
     // Record UI command buffer if necessary
-    vkResetCommandBuffer(m_uiCommandBuffers[imageIndex], 0);
-    recordCommandBuffer(m_uiCommandBuffers[imageIndex], imageIndex);
+    recordUICommands(imageIndex);
+
 
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1101,7 +1133,7 @@ void VkRenderer::drawUI() {
         ImGui::SameLine();
         ImGui::Text("counter = %d", counter);
 
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / m_io->Framerate, m_io->Framerate);
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
         ImGui::End();
     }
 
@@ -1227,10 +1259,6 @@ void VkRenderer::createImguiContext(GLFWwindow* window) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
-    m_io = &ImGui::GetIO(); (void)m_io;
-    m_io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    m_io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
     // Initialize some DearImgui specific resources
     createUIDescriptorPool();
     createUIRenderPass();
@@ -1251,10 +1279,6 @@ void VkRenderer::createImguiContext(GLFWwindow* window) {
     init_info.ImageCount = m_imageCount;
     init_info.RenderPass = m_uiRenderPass;
     ImGui_ImplVulkan_Init(&init_info);
-
-    VkCommandBuffer commandBuffer = beginSingleTimeCommands(m_uiCommandPool);
-    ImGui_ImplVulkan_CreateFontsTexture();
-    endSingleTimeCommands(commandBuffer, m_uiCommandPool);
 }
 
 bool VkRenderer::isDeviceSuitable(VkPhysicalDevice device) {

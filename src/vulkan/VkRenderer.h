@@ -196,6 +196,7 @@ private:
 	void createUIDescriptorPool();
 	void createUIFramebuffers();
 	void createUIRenderPass();
+	void recordUICommands(uint32_t imageIndex);
 	void drawFrame(GLFWwindow* window);
 	void drawUI();
 	void createDescriptorSetLayout();
