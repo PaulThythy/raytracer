@@ -92,6 +92,10 @@ private:
 	uint32_t m_currentFrame = 0;
 	bool m_framebufferResized = false;
 
+	bool m_show_demo_window = true;
+	bool m_show_another_window = false;
+	ImVec4 m_clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
 	const std::vector<const char*> m_validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
