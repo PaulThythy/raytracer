@@ -856,7 +856,7 @@ void VkRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = m_swapchainImages[imageIndex];
@@ -1263,8 +1263,8 @@ void VkRenderer::createImguiContext(GLFWwindow* window) {
     m_io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     m_io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 #ifdef _WIN32
-    m_io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
-    m_io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+    //m_io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    //m_io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
 #endif
 
     // Initialize some DearImgui specific resources
