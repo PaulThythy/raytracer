@@ -12,7 +12,6 @@ void VkRenderer::initVulkan(GLFWwindow* window) {
     createDescriptorSetLayout();
     createGraphicsPipeline();
     createCommandPool();
-    createUICommandPool();
     createFramebuffers();
     createVertexBuffer(m_vertices);
     createIndexBuffer(m_indices);
@@ -20,7 +19,6 @@ void VkRenderer::initVulkan(GLFWwindow* window) {
     createDescriptorPool();
     createDescriptorSets();
     createCommandBuffers();
-    createUICommandBuffers();
     createSyncObjects();
 
     createImguiContext(window);
@@ -1253,6 +1251,10 @@ void VkRenderer::createImguiContext(GLFWwindow* window) {
     init_info.ImageCount = m_imageCount;
     init_info.RenderPass = m_uiRenderPass;
     ImGui_ImplVulkan_Init(&init_info);
+
+    VkCommandBuffer commandBuffer = beginSingleTimeCommands(m_uiCommandPool);
+    ImGui_ImplVulkan_CreateFontsTexture();
+    endSingleTimeCommands(commandBuffer, m_uiCommandPool);
 }
 
 bool VkRenderer::isDeviceSuitable(VkPhysicalDevice device) {
@@ -1416,7 +1418,6 @@ void VkRenderer::recreateSwapchain(GLFWwindow* window) {
     createFramebuffers();
     createDescriptorPool();
     createCommandBuffers();
-    createUICommandBuffers();
 
     // We also need to take care of the UI
     ImGui_ImplVulkan_SetMinImageCount(m_imageCount);
