@@ -1259,6 +1259,14 @@ void VkRenderer::createImguiContext(GLFWwindow* window) {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
+    m_io = &ImGui::GetIO(); (void)m_io;
+    m_io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    m_io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+#ifdef _WIN32
+    m_io->ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // Enable Docking
+    m_io->ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;       // Enable Multi-Viewport / Platform Windows
+#endif
+
     // Initialize some DearImgui specific resources
     createUIDescriptorPool();
     createUIRenderPass();
