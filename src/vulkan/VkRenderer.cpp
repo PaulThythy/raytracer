@@ -2,7 +2,13 @@
 
 VkRenderer::VkRenderer() : m_camera
 (
-    glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, 0.0f, 45.0f, 16.0f / 9.0f, 0.1f, 100.0f
+    glm::vec3(2.0f, 2.0f, 2.0f), 
+    glm::vec3(0.0f, 0.0f, 0.0f), 
+    glm::vec3(0.0f, 0.0f, 1.0f), 
+    45.0f, 
+    static_cast<float>(Config::INIT_WINDOW_WIDTH)/static_cast<float>(Config::INIT_WINDOW_HEIGHT), 
+    0.1f, 
+    100.0f
 ) {}
 
 

@@ -51,26 +51,24 @@ inline static void keyCallback(GLFWwindow *window, int key, int scancode, int ac
     if (action == GLFW_PRESS || action == GLFW_REPEAT)
     {
         const float cameraSpeed = 0.1f;
+        const float cameraRotationSpeed = 5.0f;
 
-        /*if (key == GLFW_KEY_Z) {
-            camera.m_position += cameraSpeed * camera.m_front;
-        } else if (key == GLFW_KEY_S) {
-            camera.m_position -= cameraSpeed * camera.m_front;
-        } else if (key == GLFW_KEY_Q) {
-            camera.m_position += glm::normalize(glm::cross(camera.m_front, camera.m_up)) * cameraSpeed;
+        if (key == GLFW_KEY_S) {
+            camera.moveForward(-cameraSpeed);
+        } else if (key == GLFW_KEY_W) {
+            camera.moveForward(cameraSpeed);
         } else if (key == GLFW_KEY_D) {
-            camera.m_position -= glm::normalize(glm::cross(camera.m_front, camera.m_up)) * cameraSpeed;
-        }*/
-
-        if (key == GLFW_KEY_Z)
-        {
-            camera.m_position.x += cameraSpeed;
-        } else if (key == GLFW_KEY_S) {
-            camera.m_position.x -= cameraSpeed;
+            camera.moveRight(cameraSpeed);
+        } else if (key == GLFW_KEY_A) {
+            camera.moveRight(-cameraSpeed);
         } else if (key == GLFW_KEY_Q) {
-            
-        } else if (key == GLFW_KEY_D) {
-            
+            camera.rotateAroundUp(cameraRotationSpeed);
+        } else if (key == GLFW_KEY_E) {
+            camera.rotateAroundUp(-cameraRotationSpeed);
+        } else if (key == GLFW_KEY_Z) {
+            camera.rotateAroundRight(cameraRotationSpeed);
+        } else if (key == GLFW_KEY_X) {
+            camera.rotateAroundRight(-cameraRotationSpeed);
         }
     }
 

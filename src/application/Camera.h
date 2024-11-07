@@ -18,6 +18,7 @@ struct Camera
 
 	float m_yaw;
 	float m_pitch;
+	//TODO add m_roll
 	float m_fov;
 	float m_aspectRatio;
 	float m_nearPlane;
@@ -25,14 +26,15 @@ struct Camera
 
 	Camera() {}
 
-	Camera(glm::vec3 position, glm::vec3 lookAt, glm::vec3 up, float yaw, float pitch, float fov, float aspectRatio, float nearPlane, float farPlane)
-		: m_position(position), m_lookAt(lookAt), m_up(up), m_yaw(yaw), m_pitch(pitch), m_fov(fov), m_aspectRatio(aspectRatio), m_nearPlane(nearPlane), m_farPlane(farPlane) {
+	Camera(glm::vec3 position, glm::vec3 lookAt, glm::vec3 up, float fov, float aspectRatio, float nearPlane, float farPlane)
+		: m_position(position), m_lookAt(lookAt), m_up(up), m_fov(fov), m_aspectRatio(aspectRatio), m_nearPlane(nearPlane), m_farPlane(farPlane) {
 		m_worldUp = up;
 
 		updateCameraVectors();
 	}
 
 	inline glm::mat4 getViewMatrix() const {
+		//return glm::lookAt(m_position, m_position + m_front, m_up);
 		return glm::lookAt(m_position, m_lookAt, m_up);
 	}
 
@@ -47,13 +49,8 @@ struct Camera
 	}
 
 	inline void updateCameraVectors() {
-		glm::vec3 front;
-		front.x = cos(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
-		front.y = sin(glm::radians(m_pitch));
-		front.z = sin(glm::radians(m_yaw)) * cos(glm::radians(m_pitch));
-		m_front = glm::normalize(front);
+		m_front = glm::normalize(m_lookAt - m_position);
 
-		// Recalculer les vecteurs "right" et "up"
 		m_right = glm::normalize(glm::cross(m_front, m_worldUp));
 		m_up = glm::normalize(glm::cross(m_right, m_front));
 	}
@@ -63,4 +60,41 @@ struct Camera
 		ubo.m_view = getViewMatrix();
 		ubo.m_proj = getProjectionMatrix();
 	}
+
+	inline void moveForward(float distance) {
+        glm::vec3 direction = glm::normalize(m_front);
+        m_position += direction * distance;
+        m_lookAt += direction * distance;
+        updateCameraVectors();
+    }
+
+	inline void moveRight(float distance) {
+        glm::vec3 direction = glm::normalize(m_right);
+        m_position += direction * distance;
+        m_lookAt += direction * distance;
+        updateCameraVectors();
+    }
+
+	inline void moveUp(float distance) {
+        glm::vec3 direction = glm::normalize(m_up);
+        m_position += direction * distance;
+        m_lookAt += direction * distance;
+        updateCameraVectors();
+    }
+
+	inline void rotateAroundUp(float angle) {
+        glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(angle), m_worldUp);
+        glm::vec3 direction = m_lookAt - m_position;
+        direction = glm::vec3(rotation * glm::vec4(direction, 0.0f));
+        m_lookAt = m_position + direction;
+        updateCameraVectors();
+    }
+
+    inline void rotateAroundRight(float angle) {
+        glm::mat4 rotation = glm::rotate(glm::mat4(1.0f), glm::radians(angle), m_right);
+        glm::vec3 direction = m_lookAt - m_position;
+        direction = glm::vec3(rotation * glm::vec4(direction, 0.0f));
+        m_lookAt = m_position + direction;
+        updateCameraVectors();
+    }
 };
