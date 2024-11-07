@@ -30,6 +30,8 @@ public:
 
 	VkRenderer();
 
+	inline Camera& getRendererCamera() { return m_camera; }
+
 private:
 	VkInstance m_instance;
 	VkDevice m_device;

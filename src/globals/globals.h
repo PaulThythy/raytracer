@@ -9,8 +9,8 @@
 namespace Config {
 
     inline int SAMPLES = 1;
-    inline uint32_t INIT_WINDOW_WIDTH = 1920;
-	inline uint32_t INIT_WINDOW_HEIGHT = 1080;
+    inline uint32_t INIT_WINDOW_WIDTH = 1200;
+	inline uint32_t INIT_WINDOW_HEIGHT = 1000;
 
     inline bool SHOW_DEMO_WINDOW = true;
     inline bool SHOW_ANOTHER_WINDOW = false;
