@@ -15,10 +15,7 @@ struct Camera
 	glm::vec3 m_up;
 	glm::vec3 m_right;
 	glm::vec3 m_worldUp;
-
-	float m_yaw;
-	float m_pitch;
-	//TODO add m_roll
+	
 	float m_fov;
 	float m_aspectRatio;
 	float m_nearPlane;
