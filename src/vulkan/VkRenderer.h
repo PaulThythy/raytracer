@@ -20,12 +20,15 @@
 #include "imgui_impl_vulkan.h"
 
 #include "globals/globals.h"
+#include "application/Camera.h"
 
 class VkRenderer {
 public:
 	void initVulkan(GLFWwindow* window);
 	void mainLoop(GLFWwindow* window);
 	void cleanupVulkan();
+
+	VkRenderer();
 
 private:
 	VkInstance m_instance;
@@ -96,6 +99,8 @@ private:
 	bool m_show_another_window = false;
 	ImVec4 m_clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+	Camera m_camera;
+
 	const std::vector<const char*> m_validationLayers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -152,13 +157,6 @@ private:
 			return attributeDescriptions;
 		}
 	};
-
-	struct UniformBufferObject {
-		alignas(16) glm::mat4 m_model;
-		alignas(16) glm::mat4 m_view;
-		alignas(16) glm::mat4 m_proj;
-	};
-
 
 	const std::vector<Vertex> m_vertices = {
 		{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},  

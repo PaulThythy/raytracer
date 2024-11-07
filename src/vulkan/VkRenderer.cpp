@@ -1,5 +1,11 @@
 #include "VkRenderer.h"
 
+VkRenderer::VkRenderer() : m_camera
+(
+    glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, 0.0f, 45.0f, 16.0f / 9.0f, 0.1f, 100.0f
+) {}
+
+
 void VkRenderer::initVulkan(GLFWwindow* window) {
     createInstance();
     setupDebugMessenger();
@@ -138,43 +144,39 @@ bool VkRenderer::checkValidationLayerSupport() {
 }
 
 void VkRenderer::createDescriptorSets() {
-    // S'assurer que m_descriptorSets a la bonne taille
     m_descriptorSets.resize(m_swapchainImages.size());
 
-    // Créer un vecteur de layouts de descripteurs, un pour chaque image de la swapchain
+    // Create a vector of descriptor layouts, one for each swapchain image
     std::vector<VkDescriptorSetLayout> layouts(m_swapchainImages.size(), m_descriptorSetLayout);
 
-    // Configuration pour l'allocation des Descriptor Sets
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocInfo.descriptorPool = m_descriptorPool;  // Le pool de descripteurs à partir duquel allouer
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(m_swapchainImages.size());  // Nombre de sets à allouer
-    allocInfo.pSetLayouts = layouts.data();  // Les layouts des descripteurs
+    allocInfo.descriptorPool = m_descriptorPool; 
+    allocInfo.descriptorSetCount = static_cast<uint32_t>(m_swapchainImages.size()); 
+    allocInfo.pSetLayouts = layouts.data();  
 
     // Allocation des Descriptor Sets
     if (vkAllocateDescriptorSets(m_device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
         throw std::runtime_error("Échec de l'allocation des descriptor sets !");
     }
 
-    // Pour chaque Descriptor Set, lier le buffer uniforme correspondant
+    // For each Descriptor Set, link the corresponding uniform buffer
     for (size_t i = 0; i < m_swapchainImages.size(); i++) {
         // Informations sur le buffer uniforme
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_uniformBuffers[i];  // Le buffer uniforme pour cette image
+        bufferInfo.buffer = m_uniformBuffers[i]; 
         bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+        bufferInfo.range = sizeof(Camera::UniformBufferObject);
 
-        // Configuration pour la mise à jour du Descriptor Set
         VkWriteDescriptorSet descriptorWrite{};
         descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_descriptorSets[i];  // Le Descriptor Set à mettre à jour
-        descriptorWrite.dstBinding = 0;  // Doit correspondre au binding dans le shader
+        descriptorWrite.dstSet = m_descriptorSets[i];  
+        descriptorWrite.dstBinding = 0;  
         descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  // Type de descripteur
+        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  
         descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;  // Informations sur le buffer
+        descriptorWrite.pBufferInfo = &bufferInfo;  
 
-        // Mise à jour du Descriptor Set avec les informations du buffer uniforme
         vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
     }
 }
@@ -579,21 +581,15 @@ void VkRenderer::createDescriptorSetLayout() {
 }
 
 void VkRenderer::updateUniformBuffer(uint32_t currentImage, float deltaTime) {
-    UniformBufferObject ubo{};
+    Camera::UniformBufferObject ubo;
     //ubo.m_model = glm::rotate(glm::mat4(1.0f), deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.m_model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.m_view = glm::lookAt(
-        glm::vec3(2.0f, 2.0f, 2.0f), 
-        glm::vec3(0.0f, 0.0f, 0.0f), 
-        glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.m_proj = glm::perspective(glm::radians(45.0f), m_swapchainExtent.width / (float) m_swapchainExtent.height, 0.1f, 10.0f);
-    ubo.m_proj[1][1] *= -1;
+    m_camera.updateCameraUBO(ubo, deltaTime);
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 void VkRenderer::createUniformBuffers() {
-    VkDeviceSize bufferSize = sizeof(VkRenderer::UniformBufferObject);
+    VkDeviceSize bufferSize = sizeof(Camera::UniformBufferObject);
 
     size_t imageCount = m_swapchainImages.size();
 
