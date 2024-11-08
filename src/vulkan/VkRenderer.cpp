@@ -93,15 +93,15 @@ void VkRenderer::cleanupVulkan() {
     }
 
     for (auto& swapchainFramebuffer : m_swapchainFramebuffers) {
-        vkDestroyFramebuffer(m_device, swapchainFramebuffer, nullptr);
+        vkDestroyFramebuffer(m_device, swapchainFramebuffer, m_allocator);
     }
 
     for (auto& uiFramebuffer : m_uiFramebuffers) {
-        vkDestroyFramebuffer(m_device, uiFramebuffer, nullptr);
+        vkDestroyFramebuffer(m_device, uiFramebuffer, m_allocator);
     }
 
     for (auto& swapchainImageView : m_swapchainImageViews) {
-        vkDestroyImageView(m_device, swapchainImageView, nullptr);
+        vkDestroyImageView(m_device, swapchainImageView, m_allocator);
     }
     vkDestroySwapchainKHR(m_device, m_swapchain, m_allocator);
     vkDestroySurfaceKHR(m_instance, m_surface, m_allocator);
