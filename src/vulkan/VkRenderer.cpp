@@ -1401,25 +1401,25 @@ VkRenderer::SwapChainSupportDetails VkRenderer::querySwapchainSupport(const VkPh
 // Destroys all the resources associated with swapchain recreation
 void VkRenderer::cleanupSwapchain() {
     for (auto& swapchainFramebuffer : m_swapchainFramebuffers) {
-        vkDestroyFramebuffer(m_device, swapchainFramebuffer, nullptr);
+        vkDestroyFramebuffer(m_device, swapchainFramebuffer, m_allocator);
     }
 
     vkFreeCommandBuffers(m_device, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
 
-    vkDestroyPipeline(m_device, m_graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(m_device, m_pipelineLayout, nullptr);
-    vkDestroyRenderPass(m_device, m_renderPass, nullptr);
+    vkDestroyPipeline(m_device, m_graphicsPipeline, m_allocator);
+    vkDestroyPipelineLayout(m_device, m_pipelineLayout, m_allocator);
+    vkDestroyRenderPass(m_device, m_renderPass, m_allocator);
 
     for (auto& swapchainImageView : m_swapchainImageViews) {
-        vkDestroyImageView(m_device, swapchainImageView, nullptr);
+        vkDestroyImageView(m_device, swapchainImageView, m_allocator);
     }
 
-    vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+    vkDestroySwapchainKHR(m_device, m_swapchain, m_allocator);
 }
 
 void VkRenderer::cleanupUIResources() {
     for (auto framebuffer : m_uiFramebuffers) {
-        vkDestroyFramebuffer(m_device, framebuffer, nullptr);
+        vkDestroyFramebuffer(m_device, framebuffer, m_allocator);
     }
 
     vkFreeCommandBuffers(m_device, m_uiCommandPool, static_cast<uint32_t>(m_uiCommandBuffers.size()), m_uiCommandBuffers.data());
