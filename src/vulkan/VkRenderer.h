@@ -21,7 +21,7 @@
 
 #include "globals/globals.h"
 #include "application/Camera.h"
-#include "math/vertex.h"
+#include "math/Vertex.h"
 
 class VkRenderer {
 public:
