@@ -22,6 +22,7 @@
 #include "globals/globals.h"
 #include "application/Camera.h"
 #include "math/Vertex.h"
+#include "math/Triangle.h"
 
 class VkRenderer {
 public:
@@ -70,6 +71,10 @@ private:
 	std::vector<VkBuffer> m_uniformBuffers;
 	std::vector<VkDeviceMemory> m_uniformBuffersMemory;
 	std::vector<void*> m_uniformBuffersMapped;
+
+	std::vector<Triangle> m_triangles;
+	VkBuffer m_triangleBuffer;
+	VkDeviceMemory m_triangleBufferMemory;
 
 	VkDescriptorPool m_descriptorPool;
 	VkDescriptorPool m_uiDescriptorPool;
@@ -159,6 +164,7 @@ private:
 	void createSyncObjects();
 	void createUICommandBuffers();
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+	void createTriangleData();
 	void createUICommandPool();
 	void createUIDescriptorPool();
 	void createUIFramebuffers();

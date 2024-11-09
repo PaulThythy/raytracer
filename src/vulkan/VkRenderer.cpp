@@ -25,6 +25,7 @@ void VkRenderer::initVulkan(GLFWwindow* window) {
     createGraphicsPipeline();
     createCommandPool();
     createFramebuffers();
+    createTriangleData();
     createVertexBuffer(m_vertices);
     createIndexBuffer(m_indices);
     createUniformBuffers();
@@ -68,6 +69,9 @@ void VkRenderer::cleanupVulkan() {
 
     vkDestroyBuffer(m_device, m_indexBuffer, m_allocator);
     vkFreeMemory(m_device, m_indexBufferMemory, m_allocator);
+
+    vkDestroyBuffer(m_device, m_triangleBuffer, m_allocator);
+    vkFreeMemory(m_device, m_triangleBufferMemory, m_allocator);
 
     for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
         vkDestroyBuffer(m_device, m_uniformBuffers[i], m_allocator);
@@ -149,12 +153,61 @@ bool VkRenderer::checkValidationLayerSupport() {
     return true;
 }
 
+void VkRenderer::createTriangleData() {
+    m_triangles = {
+        Triangle(Vertex3D(glm::vec3(-1.5f, -1.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                 Vertex3D(glm::vec3(1.5f, -1.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                 Vertex3D(glm::vec3(1.5f, 1.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
+        ),
+        Triangle(Vertex3D(glm::vec3(1.5f, -1.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                Vertex3D(glm::vec3(1.5f, 1.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+                Vertex3D(glm::vec3(-1.5f, 1.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
+        )
+    };
+
+    VkDeviceSize bufferSize = sizeof(Triangle) * m_triangles.size();
+
+    createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_triangleBuffer, m_triangleBufferMemory);
+    void* data;
+    vkMapMemory(m_device, m_triangleBufferMemory, 0, bufferSize, 0, &data);
+    memcpy(data, m_triangles.data(), (size_t)bufferSize);
+    vkUnmapMemory(m_device, m_triangleBufferMemory);
+}
+
+void VkRenderer::createDescriptorSetLayout() {
+    //camera
+    VkDescriptorSetLayoutBinding uboLayoutBinding{};
+    uboLayoutBinding.binding = 0;
+    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboLayoutBinding.descriptorCount = 1;
+    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    uboLayoutBinding.pImmutableSamplers = nullptr;
+
+    //SSBO for triangles
+    VkDescriptorSetLayoutBinding triangleBufferLayoutBinding{};
+    triangleBufferLayoutBinding.binding = 1;
+    triangleBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    triangleBufferLayoutBinding.descriptorCount = 1;
+    triangleBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    triangleBufferLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, triangleBufferLayoutBinding};
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());;
+    layoutInfo.pBindings = bindings.data();
+
+    if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
+        throw std::runtime_error("Échec de la création du descriptor set layout !");
+    }
+}
+
 void VkRenderer::createDescriptorSets() {
     m_descriptorSets.resize(m_swapchainImages.size());
 
     // Create a vector of descriptor layouts, one for each swapchain image
     std::vector<VkDescriptorSetLayout> layouts(m_swapchainImages.size(), m_descriptorSetLayout);
-
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
     allocInfo.descriptorPool = m_descriptorPool; 
@@ -168,22 +221,35 @@ void VkRenderer::createDescriptorSets() {
 
     // For each Descriptor Set, link the corresponding uniform buffer
     for (size_t i = 0; i < m_swapchainImages.size(); i++) {
-        // Informations sur le buffer uniforme
+        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = m_uniformBuffers[i]; 
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(Camera::UniformBufferObject);
 
-        VkWriteDescriptorSet descriptorWrite{};
-        descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstSet = m_descriptorSets[i];  
-        descriptorWrite.dstBinding = 0;  
-        descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  
-        descriptorWrite.descriptorCount = 1;
-        descriptorWrite.pBufferInfo = &bufferInfo;  
+        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[0].dstSet = m_descriptorSets[i];  
+        descriptorWrites[0].dstBinding = 0;  
+        descriptorWrites[0].dstArrayElement = 0;
+        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;  
+        descriptorWrites[0].descriptorCount = 1;
+        descriptorWrites[0].pBufferInfo = &bufferInfo;  
 
-        vkUpdateDescriptorSets(m_device, 1, &descriptorWrite, 0, nullptr);
+        VkDescriptorBufferInfo triangleBufferInfo{};
+        triangleBufferInfo.buffer = m_triangleBuffer;
+        triangleBufferInfo.offset = 0;
+        triangleBufferInfo.range = sizeof(Triangle) * m_triangles.size();
+
+        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[1].dstSet = m_descriptorSets[i];
+        descriptorWrites[1].dstBinding = 1;
+        descriptorWrites[1].dstArrayElement = 0;
+        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[1].descriptorCount = 1;
+        descriptorWrites[1].pBufferInfo = &triangleBufferInfo;
+
+        vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
@@ -210,15 +276,22 @@ void VkRenderer::createUICommandPool() {
 }
 
 void VkRenderer::createDescriptorPool() {
-    VkDescriptorPoolSize poolSize{};
-    poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    poolSize.descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+
+    //for camera
+    poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[0].descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
+
+    //for triangles
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    poolInfo.poolSizeCount = 1;
-    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    poolInfo.pPoolSizes = poolSizes.data();
     poolInfo.maxSets = static_cast<uint32_t>(m_swapchainImages.size());
+    //poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
     if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Échec de la création du descriptor pool !");
@@ -566,24 +639,6 @@ VkShaderModule VkRenderer::createShaderModule(const std::vector<char>& shaderCod
     }
 
     return shaderModule;
-}
-
-void VkRenderer::createDescriptorSetLayout() {
-    VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    uboLayoutBinding.binding = 0;
-    uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboLayoutBinding.descriptorCount = 1;
-    uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    uboLayoutBinding.pImmutableSamplers = nullptr;
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    layoutInfo.bindingCount = 1;
-    layoutInfo.pBindings = &uboLayoutBinding;
-
-    if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Échec de la création du descriptor set layout !");
-    }
 }
 
 void VkRenderer::updateUniformBuffer(uint32_t currentImage, float deltaTime) {

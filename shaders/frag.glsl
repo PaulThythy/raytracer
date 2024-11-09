@@ -17,6 +17,16 @@ layout(binding = 0) uniform UniformBufferObject {
     float farPlane;
 } cameraUBO;
 
+struct Triangle {
+    vec3 v0; 
+    vec3 v1;
+    vec3 v2;
+};
+
+layout(set = 0, binding = 1) buffer Triangles {
+    Triangle triangles[];
+};
+
 void main() {
-    outColor = vec4(1.0, 0.0, 0.0, 1.0);
+    outColor = vec4(0.0, 0.0, 0.0, 1.0);
 }
