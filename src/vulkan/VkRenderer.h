@@ -21,6 +21,7 @@
 
 #include "globals/globals.h"
 #include "application/Camera.h"
+#include "math/vertex.h"
 
 class VkRenderer {
 public:
@@ -124,42 +125,7 @@ private:
 		std::vector<VkPresentModeKHR> m_presentModes;
 	};
 
-	struct Vertex {
-		glm::vec3 pos;   
-		glm::vec2 uv;
-
-		static VkVertexInputBindingDescription getBindingDescription() {
-			VkVertexInputBindingDescription bindingDescription{};
-			bindingDescription.binding = 0;
-			bindingDescription.stride = sizeof(Vertex);
-			bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-
-			return bindingDescription;
-		}
-
-		static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-			std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions{};
-
-			attributeDescriptions[0].binding = 0;
-			attributeDescriptions[0].location = 0;
-			attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-			attributeDescriptions[1].binding = 0;
-			attributeDescriptions[1].location = 1;
-			attributeDescriptions[1].format = VK_FORMAT_R32G32_SFLOAT;
-			attributeDescriptions[1].offset = offsetof(Vertex, uv);
-
-			/*attributeDescriptions[2].binding = 0;
-			attributeDescriptions[2].location = 2;
-			attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-			attributeDescriptions[2].offset = offsetof(Vertex, texCoord);*/
-
-			return attributeDescriptions;
-		}
-	};
-
-	const std::vector<Vertex> m_vertices = {
+	const std::vector<Vertex2D> m_vertices = {
 		{{-1.0f, -1.0f, 0.0f},  {0.0f, 0.0f}},
 		{{-1.0f,  1.0f, 0.0f},  {0.0f, 1.0f}},
 		{{ 1.0f,  1.0f, 0.0f},  {1.0f, 1.0f}},
@@ -204,7 +170,7 @@ private:
 	void createDescriptorSets();
 	void updateUniformBuffer(uint32_t currentImage, float totalTime);
 	void createUniformBuffers();
-	void createVertexBuffer(const std::vector<VkRenderer::Vertex>& verticies);
+	void createVertexBuffer(const std::vector<Vertex2D>& verticies);
 	void createIndexBuffer(const std::vector<uint32_t>& indices);
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory);
 	void copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size);

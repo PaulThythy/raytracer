@@ -271,8 +271,8 @@ void VkRenderer::createGraphicsPipeline() {
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
-    auto bindingDescription = Vertex::getBindingDescription();
-    auto attributeDescriptions = Vertex::getAttributeDescriptions();
+    auto bindingDescription = Vertex2D::getBindingDescription();
+    auto attributeDescriptions = Vertex2D::getAttributeDescriptions();
 
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
@@ -610,7 +610,7 @@ void VkRenderer::createUniformBuffers() {
     }
 }
 
-void VkRenderer::createVertexBuffer(const std::vector<VkRenderer::Vertex>& vertices) {
+void VkRenderer::createVertexBuffer(const std::vector<Vertex2D>& vertices) {
     VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
     // Create a temporary memory buffer accessible by the CPU
