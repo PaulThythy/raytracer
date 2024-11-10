@@ -26,6 +26,7 @@ public:
     bool framebufferResized = false;
 
     bool rightMouseButtonPressed = false;
+    bool middleMouseButtonPressed = false;
     double lastMouseX = 0.0;
     double lastMouseY = 0.0;
 
@@ -107,6 +108,10 @@ inline static void mouseButtonCallback(GLFWwindow* window, int button, int actio
         app->rightMouseButtonPressed = (action == GLFW_PRESS);
         glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
     }
+    else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+        app->middleMouseButtonPressed = (action == GLFW_PRESS);
+        glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
+    }
 }
 
 inline static void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
@@ -124,6 +129,19 @@ inline static void cursorPositionCallback(GLFWwindow* window, double xpos, doubl
 
         camera.rotateAroundUp(xoffset);
         camera.rotateAroundRight(yoffset);
+
+        app->lastMouseX = xpos;
+        app->lastMouseY = ypos;
+    }else if (app->middleMouseButtonPressed) {
+        float xoffset = static_cast<float>(xpos - app->lastMouseX);
+        float yoffset = static_cast<float>(app->lastMouseY - ypos);
+
+        const float moveSpeed = 0.01f;
+        xoffset *= moveSpeed;
+        yoffset *= moveSpeed;
+
+        camera.moveRight(-xoffset);
+        camera.moveUp(yoffset);
 
         app->lastMouseX = xpos;
         app->lastMouseY = ypos;
