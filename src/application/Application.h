@@ -60,34 +60,28 @@ inline static void keyCallback(GLFWwindow *window, int key, int scancode, int ac
 
         if (key == GLFW_KEY_S) {
             camera.moveForward(-cameraSpeed);
-        } else if (key == GLFW_KEY_W) {
+        }
+        else if (key == GLFW_KEY_W) {
             camera.moveForward(cameraSpeed);
-        } else if (key == GLFW_KEY_D) {
+        }
+        else if (key == GLFW_KEY_D) {
             camera.moveRight(cameraSpeed);
-        } else if (key == GLFW_KEY_A) {
+        }
+        else if (key == GLFW_KEY_A) {
             camera.moveRight(-cameraSpeed);
-        } else if (key == GLFW_KEY_Q) {
+        }
+        else if (key == GLFW_KEY_Q) {
             camera.rotateAroundUp(cameraRotationSpeed);
-        } else if (key == GLFW_KEY_E) {
+        }
+        else if (key == GLFW_KEY_E) {
             camera.rotateAroundUp(-cameraRotationSpeed);
-        } else if (key == GLFW_KEY_Z) {
+        }
+        else if (key == GLFW_KEY_Z) {
             camera.rotateAroundRight(cameraRotationSpeed);
-        } else if (key == GLFW_KEY_X) {
+        }
+        else if (key == GLFW_KEY_X) {
             camera.rotateAroundRight(-cameraRotationSpeed);
         }
-
-        std::cout << "Version in keyCallback :" << std::endl;
-        std::cout << "position : (" << camera.m_cameraUBO.m_position.x << ", " << camera.m_cameraUBO.m_position.y << ", " << camera.m_cameraUBO.m_position.z << ")" << std::endl;
-        std::cout << "lookAt : (" << camera.m_cameraUBO.m_lookAt.x << ", " << camera.m_cameraUBO.m_lookAt.y << ", " << camera.m_cameraUBO.m_lookAt.z << ")" << std::endl;
-        std::cout << "front : (" << camera.m_cameraUBO.m_front.x << ", " << camera.m_cameraUBO.m_front.y << ", " << camera.m_cameraUBO.m_front.z << ")" << std::endl;
-        std::cout << "up : (" << camera.m_cameraUBO.m_up.x << ", " << camera.m_cameraUBO.m_up.y << ", " << camera.m_cameraUBO.m_up.z << ")" << std::endl;
-        std::cout << "right : (" << camera.m_cameraUBO.m_right.x << ", " << camera.m_cameraUBO.m_right.y << ", " << camera.m_cameraUBO.m_right.z << ")" << std::endl;
-        std::cout << "worldUp : (" << camera.m_cameraUBO.m_worldUp.x << ", " << camera.m_cameraUBO.m_worldUp.y << ", " << camera.m_cameraUBO.m_worldUp.z << ")" << std::endl;
-        std::cout << "fov : " << camera.m_cameraUBO.m_fov << std::endl;
-        std::cout << "aspectRatio : " << camera.m_cameraUBO.m_aspectRatio << std::endl;
-        std::cout << "nearPlane : " << camera.m_cameraUBO.m_nearPlane << std::endl;
-        std::cout << "farPlane : " << camera.m_cameraUBO.m_farPlane << std::endl;
-        std::cout << std::endl;
     }
 
     if (key == GLFW_KEY_ESCAPE)

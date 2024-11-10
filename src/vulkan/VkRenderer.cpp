@@ -155,7 +155,7 @@ bool VkRenderer::checkValidationLayerSupport() {
 
 void VkRenderer::createTriangleData() {
     m_triangles = {
-        Triangle(Vertex3D({0.0f, 0.0f, 1.0f}),
+        Triangle(Vertex3D({-1.0f, -1.0f, 0.0f}),
                  Vertex3D({1.0f, -1.0f, 0.0f}),
                  Vertex3D({1.0f, 1.0f, 0.0f})
         )
@@ -642,19 +642,6 @@ void VkRenderer::updateUniformBuffer(uint32_t currentImage, float deltaTime) {
     //ubo.m_model = glm::rotate(glm::mat4(1.0f), deltaTime * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     m_camera.m_cameraUBO.m_aspectRatio = static_cast<float>(m_swapchainExtent.width)/static_cast<float>(m_swapchainExtent.height);
     m_camera.updateCameraUBO(ubo, deltaTime);
-
-    /*std::cout << "Version in updateUniformBuffer :" << std::endl;
-    std::cout << "position : (" << m_camera.m_cameraUBO.m_position.x << ", " << m_camera.m_cameraUBO.m_position.y << ", " << m_camera.m_cameraUBO.m_position.z << ")" << std::endl;
-    std::cout << "lookAt : (" << m_camera.m_cameraUBO.m_lookAt.x << ", " << m_camera.m_cameraUBO.m_lookAt.y << ", " << m_camera.m_cameraUBO.m_lookAt.z << ")" << std::endl;
-    std::cout << "front : (" << m_camera.m_cameraUBO.m_front.x << ", " << m_camera.m_cameraUBO.m_front.y << ", " << m_camera.m_cameraUBO.m_front.z << ")" << std::endl;
-    std::cout << "up : (" << m_camera.m_cameraUBO.m_up.x << ", " << m_camera.m_cameraUBO.m_up.y << ", " << m_camera.m_cameraUBO.m_up.z << ")" << std::endl;
-    std::cout << "right : (" << m_camera.m_cameraUBO.m_right.x << ", " << m_camera.m_cameraUBO.m_right.y << ", " << m_camera.m_cameraUBO.m_right.z << ")" << std::endl;
-    std::cout << "worldUp : (" << m_camera.m_cameraUBO.m_worldUp.x << ", " << m_camera.m_cameraUBO.m_worldUp.y << ", " << m_camera.m_cameraUBO.m_worldUp.z << ")" << std::endl;
-    std::cout << "fov : " << m_camera.m_cameraUBO.m_fov << std::endl;
-    std::cout << "aspectRatio : " << m_camera.m_cameraUBO.m_aspectRatio << std::endl;
-    std::cout << "nearPlane : " << m_camera.m_cameraUBO.m_nearPlane << std::endl;
-    std::cout << "farPlane : " << m_camera.m_cameraUBO.m_farPlane << std::endl;
-    std::cout << std::endl;*/
 
     memcpy(m_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
