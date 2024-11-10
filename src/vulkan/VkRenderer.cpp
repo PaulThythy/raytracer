@@ -249,28 +249,6 @@ void VkRenderer::createDescriptorSets() {
     }
 }
 
-void VkRenderer::createCommandPool() {
-    VkCommandPoolCreateInfo createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    createInfo.queueFamilyIndex = m_queueIndices.m_graphicsFamily;
-    createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-    if (vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Unable to create command pool!");
-    }
-}
-
-void VkRenderer::createUICommandPool() {
-    VkCommandPoolCreateInfo commandPoolCreateInfo = {};
-    commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    commandPoolCreateInfo.queueFamilyIndex = m_queueIndices.m_graphicsFamily;
-    commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-
-    if (vkCreateCommandPool(m_device, &commandPoolCreateInfo, nullptr, &m_uiCommandPool) != VK_SUCCESS) {
-        throw std::runtime_error("Could not create graphics command pool!");
-    }
-}
-
 void VkRenderer::createDescriptorPool() {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
 
@@ -291,6 +269,28 @@ void VkRenderer::createDescriptorPool() {
 
     if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
         throw std::runtime_error("Échec de la création du descriptor pool !");
+    }
+}
+
+void VkRenderer::createCommandPool() {
+    VkCommandPoolCreateInfo createInfo = {};
+    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    createInfo.queueFamilyIndex = m_queueIndices.m_graphicsFamily;
+    createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    if (vkCreateCommandPool(m_device, &createInfo, nullptr, &m_commandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Unable to create command pool!");
+    }
+}
+
+void VkRenderer::createUICommandPool() {
+    VkCommandPoolCreateInfo commandPoolCreateInfo = {};
+    commandPoolCreateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    commandPoolCreateInfo.queueFamilyIndex = m_queueIndices.m_graphicsFamily;
+    commandPoolCreateInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+
+    if (vkCreateCommandPool(m_device, &commandPoolCreateInfo, nullptr, &m_uiCommandPool) != VK_SUCCESS) {
+        throw std::runtime_error("Could not create graphics command pool!");
     }
 }
 
