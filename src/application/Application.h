@@ -25,6 +25,10 @@ public:
 
     bool framebufferResized = false;
 
+    bool rightMouseButtonPressed = false;
+    double lastMouseX = 0.0;
+    double lastMouseY = 0.0;
+
 private:
     void initGlfw();
     void initVulkanCtx(GLFWwindow *window);
@@ -91,9 +95,50 @@ inline static void keyCallback(GLFWwindow *window, int key, int scancode, int ac
     }
 }
 
-static void glfwErrorCallback(int error, const char *description)
+inline static void glfwErrorCallback(int error, const char *description)
 {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 }
+
+inline static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+    auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+
+    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        app->rightMouseButtonPressed = (action == GLFW_PRESS);
+        glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
+    }
+}
+
+inline static void cursorPositionCallback(GLFWwindow* window, double xpos, double ypos) {
+    auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+    VkRenderer& renderer = app->m_vulkanCtx;
+    Camera& camera = renderer.getRendererCamera();
+
+    if (app->rightMouseButtonPressed) {
+        float xoffset = static_cast<float>(xpos - app->lastMouseX);
+        float yoffset = static_cast<float>(app->lastMouseY - ypos);
+
+        const float sensitivity = 0.1f;
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
+
+        camera.rotateAroundUp(xoffset);
+        camera.rotateAroundRight(yoffset);
+
+        app->lastMouseX = xpos;
+        app->lastMouseY = ypos;
+    }
+}
+
+inline static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+    auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
+    VkRenderer& renderer = app->m_vulkanCtx;
+    Camera& camera = renderer.getRendererCamera();
+
+    const float scrollSpeed = 0.5f;
+
+    camera.moveForward(static_cast<float>(yoffset) * scrollSpeed);
+}
+
 
 #endif

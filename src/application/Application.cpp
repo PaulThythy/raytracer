@@ -40,6 +40,9 @@ void Application::initGlfw() {
 	glfwSetKeyCallback(m_window, keyCallback);
 	glfwSetFramebufferSizeCallback(m_window, framebufferResizeCallback);
 	glfwSetErrorCallback(glfwErrorCallback);
+	glfwSetCursorPosCallback(m_window, cursorPositionCallback);
+	glfwSetMouseButtonCallback(m_window, mouseButtonCallback);
+	glfwSetScrollCallback(m_window, scrollCallback);
 
 	if (!m_window) {
 		glfwTerminate();
