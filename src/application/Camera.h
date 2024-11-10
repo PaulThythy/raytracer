@@ -29,7 +29,7 @@ struct Camera
 		m_cameraUBO.m_aspectRatio = aspectRatio;
 		m_cameraUBO.m_nearPlane = nearPlane;
 		m_cameraUBO.m_farPlane = farPlane;
-		m_cameraUBO.m_worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+		m_cameraUBO.m_worldUp = glm::vec3(0.0f, 0.0f, -1.0f);
 		updateCameraVectors();
 	}
 
@@ -46,7 +46,7 @@ struct Camera
 		ubo.m_front = m_cameraUBO.m_front;
 		ubo.m_up = m_cameraUBO.m_up;
 		ubo.m_right = m_cameraUBO.m_right;
-		ubo.m_worldUp = glm::vec3(0.0f, 0.0f, 1.0f);
+		ubo.m_worldUp = glm::vec3(0.0f, 0.0f, -1.0f);
 		ubo.m_aspectRatio = m_cameraUBO.m_aspectRatio;
 		ubo.m_fov = m_cameraUBO.m_fov;
 		ubo.m_nearPlane = m_cameraUBO.m_nearPlane;
