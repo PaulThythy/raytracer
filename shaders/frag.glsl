@@ -1,6 +1,6 @@
 #version 450
 
-#define SAMPLES 10
+#define SAMPLES 1000
 #define BOUNCES 1
 #define PI 3.141592653589793238462643
 
@@ -67,8 +67,8 @@ Ray getCameraRay(vec2 uv, int sampleIndex) {
     vec2 ndc = uv * 2.0 - 1.0;
 
     // Generate random offsets for anti-aliasing within the pixel
-    float randomOffsetX = (rand(vec2(float(sampleIndex), uv.x))) / (float(SAMPLES) * 600);
-    float randomOffsetY = (rand(vec2(float(sampleIndex), uv.y))) / (float(SAMPLES) * 600);
+    float randomOffsetX = (rand(vec2(float(sampleIndex), uv.x)) - 0.5) / (float(SAMPLES) * 600);
+    float randomOffsetY = (rand(vec2(float(sampleIndex), uv.y)) - 0.5) / (float(SAMPLES) * 600);
 
     // Apply random offsets to the UV coordinates
     ndc.x += randomOffsetX;
