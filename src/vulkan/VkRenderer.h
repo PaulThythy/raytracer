@@ -80,8 +80,9 @@ private:
 	VkDescriptorPool m_uiDescriptorPool;
 
 	VkDescriptorSetLayout m_descriptorSetLayout;
-
+	//TODO add m_uiDescriptorSetLayout
 	std::vector<VkDescriptorSet> m_descriptorSets;
+	//TODO add m_uiDescriptorSets
 
 	std::vector<VkSemaphore> m_imageAvailableSemaphores;
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
