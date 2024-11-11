@@ -157,19 +157,36 @@ bool VkRenderer::checkValidationLayerSupport() {
 
 void VkRenderer::createTriangleData() {
     m_triangles = {
-        Triangle(Vertex3D({-1.0f, -1.0f, 0.0f}),
+       Triangle(Vertex3D({-1.0f, -1.0f, 0.0f}),
                  Vertex3D({1.0f, -1.0f, 0.0f}),
-                 Vertex3D({1.0f, 1.0f, 0.0f})
+                 Vertex3D({1.0f, 1.0f, 0.0f}),
+                 Material({1.0, 1.0, 0.0})
         )
     };
 
-    VkDeviceSize bufferSize = sizeof(Triangle) * m_triangles.size();
+    VkDeviceSize bufferSize;
 
-    createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_triangleBuffer, m_triangleBufferMemory);
-    void* data;
-    vkMapMemory(m_device, m_triangleBufferMemory, 0, bufferSize, 0, &data);
-    memcpy(data, m_triangles.data(), (size_t)bufferSize);
-    vkUnmapMemory(m_device, m_triangleBufferMemory);
+    if (m_triangles.empty()) {
+        bufferSize = sizeof(Triangle);
+        createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_triangleBuffer, m_triangleBufferMemory);
+
+        void* data;
+        vkMapMemory(m_device, m_triangleBufferMemory, 0, bufferSize, 0, &data);
+        memset(data, 0, static_cast<size_t>(bufferSize));
+        vkUnmapMemory(m_device, m_triangleBufferMemory);
+    }
+    else {
+        bufferSize = sizeof(Triangle) * m_triangles.size();
+
+        createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            m_triangleBuffer, m_triangleBufferMemory);
+
+        void* data;
+        vkMapMemory(m_device, m_triangleBufferMemory, 0, bufferSize, 0, &data);
+        memcpy(data, m_triangles.data(), static_cast<size_t>(bufferSize));
+        vkUnmapMemory(m_device, m_triangleBufferMemory);
+    }
 }
 
 void VkRenderer::createDescriptorSetLayout() {
@@ -237,7 +254,7 @@ void VkRenderer::createDescriptorSets() {
         VkDescriptorBufferInfo triangleBufferInfo{};
         triangleBufferInfo.buffer = m_triangleBuffer;
         triangleBufferInfo.offset = 0;
-        triangleBufferInfo.range = sizeof(Triangle) * m_triangles.size();
+        triangleBufferInfo.range = m_triangles.empty() ? sizeof(Triangle) : sizeof(Triangle) * m_triangles.size();
 
         descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrites[1].dstSet = m_descriptorSets[i];

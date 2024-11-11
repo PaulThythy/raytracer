@@ -23,6 +23,7 @@
 #include "application/Camera.h"
 #include "math/Vertex.h"
 #include "math/Triangle.h"
+#include "math/material.h"
 
 class VkRenderer {
 public:

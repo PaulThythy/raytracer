@@ -1,5 +1,9 @@
 #version 450
 
+#define SAMPLES 1
+#define BOUNCES 1
+#define PI 3.141592653589793238462643
+
 layout(location = 0) in vec2 fragUV;
 
 layout(location = 0) out vec4 outColor;
@@ -16,16 +20,6 @@ layout(binding = 0) uniform UniformBufferObject {
     float nearPlane;
     float farPlane;
 } cameraUBO;
-
-struct Triangle {
-    vec3 v0; 
-    vec3 v1;
-    vec3 v2;
-};
-
-layout(std140, set = 0, binding = 1) buffer Triangles {
-    Triangle triangles[];
-};
 
 struct Ray {
     vec3 origin;
@@ -61,34 +55,6 @@ Ray getCameraRay(vec2 uv) {
     return ray;
 }
 
-bool rayIntersectsTriangle(Ray ray, Triangle tri, out float t) {
-    const float EPSILON = 1e-6;
-    vec3 edge1 = tri.v1 - tri.v0;
-    vec3 edge2 = tri.v2 - tri.v0;
-    vec3 h = cross(ray.direction, edge2);
-    float a = dot(edge1, h);
-    if (abs(a) < EPSILON)
-        return false; // Le rayon est parallèle au triangle
-
-    float f = 1.0 / a;
-    vec3 s = ray.origin - tri.v0;
-    float u = f * dot(s, h);
-    if (u < 0.0 || u > 1.0)
-        return false;
-
-    vec3 q = cross(s, edge1);
-    float v = f * dot(ray.direction, q);
-    if (v < 0.0 || u + v > 1.0)
-        return false;
-
-    t = f * dot(edge2, q);
-    if (t > EPSILON) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
 struct Cylinder {
     vec3 baseCenter;
     vec3 axis;
@@ -97,8 +63,11 @@ struct Cylinder {
     vec4 color;
 };
 
+Cylinder xAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(1.0, 0.0, 0.0)), 0.005, 1.0, vec4(1.0, 0.0, 0.0, 1.0));
+Cylinder yAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(0.0, 1.0, 0.0)), 0.005, 1.0, vec4(0.0, 1.0, 0.0, 1.0));
+Cylinder zAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(0.0, 0.0, 1.0)), 0.005, 1.0, vec4(0.0, 0.0, 1.0, 1.0));
+
 bool rayIntersectsCylinder(Ray ray, Cylinder cylinder, out float t) {
-    // Calculer les variables nécessaires
     vec3 d = ray.direction;
     vec3 m = ray.origin - cylinder.baseCenter;
     vec3 n = cylinder.axis;
@@ -159,30 +128,60 @@ bool rayIntersectsCylinder(Ray ray, Cylinder cylinder, out float t) {
     return true;
 }
 
+struct Material {
+	vec3 albedo;
+	vec3 specular;
+	vec3 emission;
+	float emissionStrength;
+	float roughness;
+	float specularHighlight;
+	float specularExponent;
+};
 
-Cylinder xAxisCylinder = Cylinder(
-    vec3(0.0, 0.0, 0.0), 
-    normalize(vec3(1.0, 0.0, 0.0)), 
-    0.005, 
-    1.0,  
-    vec4(1.0, 0.0, 0.0, 1.0)
-);
+struct HitRecord {
+	vec3 position;
+	vec3 normal;
+	Material material;
+};
 
-Cylinder yAxisCylinder = Cylinder(
-    vec3(0.0, 0.0, 0.0), 
-    normalize(vec3(0.0, 1.0, 0.0)), 
-    0.005, 
-    1.0,  
-    vec4(0.0, 1.0, 0.0, 1.0) 
-);
+struct Triangle {
+    vec3 v0; 
+    vec3 v1;
+    vec3 v2;
+    Material material;
+};
 
-Cylinder zAxisCylinder = Cylinder(
-    vec3(0.0, 0.0, 0.0),
-    normalize(vec3(0.0, 0.0, 1.0)),
-    0.005, 
-    1.0,  
-    vec4(0.0, 0.0, 1.0, 1.0)
-);
+layout(std140, set = 0, binding = 1) buffer Triangles {
+    Triangle triangles[];
+};
+
+bool rayIntersectsTriangle(Ray ray, Triangle tri, out float t) {
+    const float EPSILON = 1e-6;
+    vec3 edge1 = tri.v1 - tri.v0;
+    vec3 edge2 = tri.v2 - tri.v0;
+    vec3 h = cross(ray.direction, edge2);
+    float a = dot(edge1, h);
+    if (abs(a) < EPSILON)
+        return false; // Le rayon est parallèle au triangle
+
+    float f = 1.0 / a;
+    vec3 s = ray.origin - tri.v0;
+    float u = f * dot(s, h);
+    if (u < 0.0 || u > 1.0)
+        return false;
+
+    vec3 q = cross(s, edge1);
+    float v = f * dot(ray.direction, q);
+    if (v < 0.0 || u + v > 1.0)
+        return false;
+
+    t = f * dot(edge2, q);
+    if (t > EPSILON) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 void main() {
     Ray ray = getCameraRay(fragUV);
@@ -197,34 +196,36 @@ void main() {
             if (t < closestT) {
                 closestT = t;
                 hit = true;
-                hitColor = vec4(1.0, 1.0, 0.0, 1.0);
+                hitColor = vec4(triangles[i].material.albedo, 1.0);
             }
         }
     }
 
+
+
+
     float t;
-
-    if (rayIntersectsCylinder(ray, xAxisCylinder, t)) {
+    if (rayIntersectsCylinder(ray, xAxisHelper, t)) {
         if (t < closestT && t > 0.0) {
             closestT = t;
             hit = true;
-            hitColor = xAxisCylinder.color; 
+            hitColor = xAxisHelper.color; 
         }
     }
 
-    if (rayIntersectsCylinder(ray, yAxisCylinder, t)) {
+    if (rayIntersectsCylinder(ray, yAxisHelper, t)) {
         if (t < closestT && t > 0.0) {
             closestT = t;
             hit = true;
-            hitColor = yAxisCylinder.color; 
+            hitColor = yAxisHelper.color; 
         }
     }
 
-    if (rayIntersectsCylinder(ray, zAxisCylinder, t)) {
+    if (rayIntersectsCylinder(ray, zAxisHelper, t)) {
         if (t < closestT && t > 0.0) {
             closestT = t;
             hit = true;
-            hitColor = zAxisCylinder.color;
+            hitColor = zAxisHelper.color;
         }
     }
 
