@@ -197,7 +197,7 @@ void VkRenderer::createDescriptorSetLayout() {
     layoutInfo.pBindings = bindings.data();
 
     if (vkCreateDescriptorSetLayout(m_device, &layoutInfo, nullptr, &m_descriptorSetLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Échec de la création du descriptor set layout !");
+        throw std::runtime_error("Failed to create descriptor set layout!");
     }
 }
 
@@ -214,7 +214,7 @@ void VkRenderer::createDescriptorSets() {
 
     // Allocation des Descriptor Sets
     if (vkAllocateDescriptorSets(m_device, &allocInfo, m_descriptorSets.data()) != VK_SUCCESS) {
-        throw std::runtime_error("Échec de l'allocation des descriptor sets !");
+        throw std::runtime_error("Failed to allocate of descriptor sets !");
     }
 
     // For each Descriptor Set, link the corresponding uniform buffer
@@ -270,7 +270,7 @@ void VkRenderer::createDescriptorPool() {
     //poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
     if (vkCreateDescriptorPool(m_device, &poolInfo, nullptr, &m_descriptorPool) != VK_SUCCESS) {
-        throw std::runtime_error("Échec de la création du descriptor pool !");
+        throw std::runtime_error("Failed to create descriptor pool !");
     }
 }
 
