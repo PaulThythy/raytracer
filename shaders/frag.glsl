@@ -1,8 +1,49 @@
 #version 450
 
-#define SAMPLES 1
+#define SAMPLES 10
 #define BOUNCES 1
 #define PI 3.141592653589793238462643
+
+//from https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
+float rand(vec2 co) {
+    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+struct Ray {
+    vec3 origin;
+    vec3 direction;
+};
+
+struct Material {
+	vec3 albedo;
+	vec3 specular;
+	vec3 emission;
+	float emissionStrength;
+	float roughness;
+	float specularHighlight;
+	float specularExponent;
+};
+
+struct HitRecord {
+	vec3 position;
+	vec3 normal;
+	Material material;
+};
+
+struct Triangle {
+    vec3 v0; 
+    vec3 v1;
+    vec3 v2;
+    Material material;
+};
+
+struct Cylinder {
+    vec3 baseCenter;
+    vec3 axis;
+    float radius;
+    float height;
+    vec4 color;
+};
 
 layout(location = 0) in vec2 fragUV;
 
@@ -21,47 +62,42 @@ layout(binding = 0) uniform UniformBufferObject {
     float farPlane;
 } cameraUBO;
 
-struct Ray {
-    vec3 origin;
-    vec3 direction;
-};
-
-Ray getCameraRay(vec2 uv) {
-    // Convertir les coordonnées UV de [0,1] à [-1,1]
+Ray getCameraRay(vec2 uv, int sampleIndex) {
+    // Convert UV coordinates from [0,1] to [-1,1].
     vec2 ndc = uv * 2.0 - 1.0;
 
-    // Calcul du champ de vision en radians
+    // Generate random offsets for anti-aliasing within the pixel
+    float randomOffsetX = (rand(vec2(float(sampleIndex), uv.x))) / (float(SAMPLES) * 600);
+    float randomOffsetY = (rand(vec2(float(sampleIndex), uv.y))) / (float(SAMPLES) * 600);
+
+    // Apply random offsets to the UV coordinates
+    ndc.x += randomOffsetX;
+    ndc.y += randomOffsetY;
+
+    // Field of view calculation in radians
     float fov = radians(cameraUBO.fov);
 
-    // Calcul du plan image à la distance focale
+    // Calculation of the image plane at focal length
     float imagePlaneHalfHeight = tan(fov / 2.0);
     float imagePlaneHalfWidth = imagePlaneHalfHeight * cameraUBO.aspectRatio;
 
-    // Calcul de la direction du rayon dans l'espace caméra
+    // Calculation of beam direction in camera space
     vec3 rayDirCameraSpace = normalize(
         ndc.x * imagePlaneHalfWidth * cameraUBO.right +
         ndc.y * imagePlaneHalfHeight * cameraUBO.up +
         cameraUBO.front
     );
 
-    // Dans ce cas, l'espace monde et l'espace caméra sont les mêmes
+    // In this case, world space and camera space are the same
     vec3 rayDirWorldSpace = normalize(rayDirCameraSpace);
 
-    // Créer le rayon
+    // create the ray
     Ray ray;
     ray.origin = cameraUBO.position;
     ray.direction = rayDirWorldSpace;
 
     return ray;
 }
-
-struct Cylinder {
-    vec3 baseCenter;
-    vec3 axis;
-    float radius;
-    float height;
-    vec4 color;
-};
 
 Cylinder xAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(1.0, 0.0, 0.0)), 0.005, 1.0, vec4(1.0, 0.0, 0.0, 1.0));
 Cylinder yAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(0.0, 1.0, 0.0)), 0.005, 1.0, vec4(0.0, 1.0, 0.0, 1.0));
@@ -128,29 +164,6 @@ bool rayIntersectsCylinder(Ray ray, Cylinder cylinder, out float t) {
     return true;
 }
 
-struct Material {
-	vec3 albedo;
-	vec3 specular;
-	vec3 emission;
-	float emissionStrength;
-	float roughness;
-	float specularHighlight;
-	float specularExponent;
-};
-
-struct HitRecord {
-	vec3 position;
-	vec3 normal;
-	Material material;
-};
-
-struct Triangle {
-    vec3 v0; 
-    vec3 v1;
-    vec3 v2;
-    Material material;
-};
-
 layout(std140, set = 0, binding = 1) buffer Triangles {
     Triangle triangles[];
 };
@@ -184,54 +197,53 @@ bool rayIntersectsTriangle(Ray ray, Triangle tri, out float t) {
 }
 
 void main() {
-    Ray ray = getCameraRay(fragUV);
 
-    bool hit = false;
-    float closestT = 1e30;
-    vec4 hitColor = vec4(0.0, 0.0, 0.0, 1.0);
+    vec4 accumulatedColor = vec4(0.0);
 
-    for (int i = 0; i < triangles.length(); ++i) {
-        float t;
-        if (rayIntersectsTriangle(ray, triangles[i], t)) {
-            if (t < closestT) {
-                closestT = t;
-                hit = true;
-                hitColor = vec4(triangles[i].material.albedo, 1.0);
+    for (int i = 0; i < SAMPLES; ++i) {
+        Ray ray = getCameraRay(fragUV, i);
+
+        bool hit = false;
+        float closestT = 1e30;
+        vec4 hitColor = vec4(0.0, 0.0, 0.0, 1.0);
+
+        for (int j = 0; j < triangles.length(); ++j) {
+            float t;
+            if (rayIntersectsTriangle(ray, triangles[j], t)) {
+                if (t < closestT) {
+                    closestT = t;
+                    hit = true;
+                    hitColor = vec4(triangles[j].material.albedo, 1.0);
+                }
             }
         }
-    }
 
-
-
-
-    float t;
-    if (rayIntersectsCylinder(ray, xAxisHelper, t)) {
-        if (t < closestT && t > 0.0) {
-            closestT = t;
-            hit = true;
-            hitColor = xAxisHelper.color; 
+        float t;
+        if (rayIntersectsCylinder(ray, xAxisHelper, t)) {
+            if (t < closestT && t > 0.0) {
+                closestT = t;
+                hit = true;
+                hitColor = xAxisHelper.color; 
+            }
         }
-    }
-
-    if (rayIntersectsCylinder(ray, yAxisHelper, t)) {
-        if (t < closestT && t > 0.0) {
-            closestT = t;
-            hit = true;
-            hitColor = yAxisHelper.color; 
+        if (rayIntersectsCylinder(ray, yAxisHelper, t)) {
+            if (t < closestT && t > 0.0) {
+                closestT = t;
+                hit = true;
+                hitColor = yAxisHelper.color; 
+            }
         }
-    }
-
-    if (rayIntersectsCylinder(ray, zAxisHelper, t)) {
-        if (t < closestT && t > 0.0) {
-            closestT = t;
-            hit = true;
-            hitColor = zAxisHelper.color;
+        if (rayIntersectsCylinder(ray, zAxisHelper, t)) {
+            if (t < closestT && t > 0.0) {
+                closestT = t;
+                hit = true;
+                hitColor = zAxisHelper.color;
+            }
         }
+
+        accumulatedColor += (hit ? hitColor : vec4(0.0, 0.0, 0.0, 1.0));
     }
 
-    if (hit) {
-        outColor = hitColor; 
-    } else {
-        outColor = vec4(0.0, 0.0, 0.0, 1.0); 
-    }
+    // Average the color over the number of samples
+    outColor = accumulatedColor / float(SAMPLES);
 }
