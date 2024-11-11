@@ -1,5 +1,11 @@
 # C++ Raytracer using ImGUI, GLM, Vulkan and GLFW
 
+### Clone the repository
+
+```bash
+  git clone --recursive https://github.com/PaulThythy/raytracer.git
+```
+
 ## Requirements
 
 ### C++ Compiler
