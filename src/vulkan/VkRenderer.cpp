@@ -582,6 +582,7 @@ void VkRenderer::createLogicalDevice() {
     deviceInfo.ppEnabledExtensionNames = m_deviceExtensions.data();
 
     VkPhysicalDeviceFeatures physicalDeviceFeatures = {};
+    physicalDeviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
     deviceInfo.pEnabledFeatures = &physicalDeviceFeatures;
 
     if (m_enableValidationLayers) {
