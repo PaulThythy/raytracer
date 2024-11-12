@@ -42,6 +42,7 @@ inline static void framebufferResizeCallback(GLFWwindow *window, int width, int 
 {
     auto app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
     app->framebufferResized = true;
+    app->m_vulkanCtx.m_framebufferResized = true;
 
     Config::INIT_WINDOW_WIDTH = width;
     Config::INIT_WINDOW_HEIGHT = height;

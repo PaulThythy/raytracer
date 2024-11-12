@@ -33,6 +33,8 @@ public:
 
 	VkRenderer();
 
+	bool m_framebufferResized = false;
+
 	inline Camera& getRendererCamera() { return m_camera; }
 
 private:
@@ -103,7 +105,6 @@ private:
 	uint32_t m_imageCount = 0;
 	const int m_MAX_FRAMES_IN_FLIGHT = 2;
 	uint32_t m_currentFrame = 0;
-	bool m_framebufferResized = false;
 
 	bool m_show_demo_window = true;
 	bool m_show_another_window = false;
