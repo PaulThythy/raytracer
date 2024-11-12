@@ -23,12 +23,14 @@ public:
 
     void run();
 
-    bool framebufferResized = false;
+    bool m_framebufferResized = false;
 
-    bool rightMouseButtonPressed = false;
-    bool middleMouseButtonPressed = false;
-    double lastMouseX = 0.0;
-    double lastMouseY = 0.0;
+    bool m_rightMouseButtonPressed = false;
+    bool m_middleMouseButtonPressed = false;
+    bool m_leftMouseButtonPressed = false;
+
+    double m_lastMouseX = 0.0;
+    double m_lastMouseY = 0.0;
 
 private:
     void initGlfw();
@@ -41,7 +43,7 @@ private:
 inline static void framebufferResizeCallback(GLFWwindow *window, int width, int height)
 {
     auto app = reinterpret_cast<Application *>(glfwGetWindowUserPointer(window));
-    app->framebufferResized = true;
+    app->m_framebufferResized = true;
     app->m_vulkanCtx.m_framebufferResized = true;
 
     Config::INIT_WINDOW_WIDTH = width;
@@ -99,13 +101,17 @@ inline static void glfwErrorCallback(int error, const char *description)
 inline static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     auto app = reinterpret_cast<Application*>(glfwGetWindowUserPointer(window));
 
-    if (button == GLFW_MOUSE_BUTTON_RIGHT) {
-        app->rightMouseButtonPressed = (action == GLFW_PRESS);
-        glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        app->m_leftMouseButtonPressed = (action == GLFW_PRESS);
+        glfwGetCursorPos(window, &app->m_lastMouseX, &app->m_lastMouseY);
+    }
+    else if (button == GLFW_MOUSE_BUTTON_RIGHT) {
+        app->m_rightMouseButtonPressed = (action == GLFW_PRESS);
+        glfwGetCursorPos(window, &app->m_lastMouseX, &app->m_lastMouseY);
     }
     else if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
-        app->middleMouseButtonPressed = (action == GLFW_PRESS);
-        glfwGetCursorPos(window, &app->lastMouseX, &app->lastMouseY);
+        app->m_middleMouseButtonPressed = (action == GLFW_PRESS);
+        glfwGetCursorPos(window, &app->m_lastMouseX, &app->m_lastMouseY);
     }
 }
 
@@ -114,9 +120,16 @@ inline static void cursorPositionCallback(GLFWwindow* window, double xpos, doubl
     VkRenderer& renderer = app->m_vulkanCtx;
     Camera& camera = renderer.getRendererCamera();
 
-    if (app->rightMouseButtonPressed) {
-        float xoffset = static_cast<float>(xpos - app->lastMouseX);
-        float yoffset = static_cast<float>(app->lastMouseY - ypos);
+    float xoffset = static_cast<float>(xpos - app->m_lastMouseX);
+    float yoffset = static_cast<float>(app->m_lastMouseY - ypos);
+
+    app->m_lastMouseX = xpos;
+    app->m_lastMouseY = ypos;
+
+    bool shiftPressed = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || 
+                        glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
+
+    if (app->m_rightMouseButtonPressed) {
 
         const float sensitivity = 0.1f;
         xoffset *= sensitivity;
@@ -125,11 +138,18 @@ inline static void cursorPositionCallback(GLFWwindow* window, double xpos, doubl
         camera.rotateAroundUp(xoffset);
         camera.rotateAroundRight(yoffset);
 
-        app->lastMouseX = xpos;
-        app->lastMouseY = ypos;
-    }else if (app->middleMouseButtonPressed) {
-        float xoffset = static_cast<float>(xpos - app->lastMouseX);
-        float yoffset = static_cast<float>(app->lastMouseY - ypos);
+        app->m_lastMouseX = xpos;
+        app->m_lastMouseY = ypos;
+    }
+    else if (shiftPressed && app->m_leftMouseButtonPressed) {
+        const float moveSpeed = 0.01f;
+        xoffset *= moveSpeed;
+        yoffset *= moveSpeed;
+
+        camera.moveRight(-xoffset);
+        camera.moveUp(yoffset);
+    }
+    else if (app->m_middleMouseButtonPressed) {
 
         const float moveSpeed = 0.01f;
         xoffset *= moveSpeed;
@@ -138,8 +158,8 @@ inline static void cursorPositionCallback(GLFWwindow* window, double xpos, doubl
         camera.moveRight(-xoffset);
         camera.moveUp(yoffset);
 
-        app->lastMouseX = xpos;
-        app->lastMouseY = ypos;
+        app->m_lastMouseX = xpos;
+        app->m_lastMouseY = ypos;
     }
 }
 
