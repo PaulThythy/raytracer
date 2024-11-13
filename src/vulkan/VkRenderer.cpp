@@ -2,7 +2,7 @@
 
 VkRenderer::VkRenderer() : m_camera
 (
-    glm::vec3(2.0f, 2.0f, 2.0f), 
+    glm::vec3(6.0f, 6.0f, 6.0f), 
     glm::vec3(0.0f, 0.0f, 0.0f), 
     glm::vec3(0.0f, 0.0f, -1.0f), 
     45.0f, 
@@ -157,10 +157,15 @@ bool VkRenderer::checkValidationLayerSupport() {
 
 void VkRenderer::createTriangleData() {
     m_triangles = {
-       Triangle(Vertex3D({-1.0f, -1.0f, 0.0f}),
-                 Vertex3D({1.0f, -1.0f, 0.0f}),
-                 Vertex3D({1.0f, 1.0f, 0.0f}),
-                 Material({1.0, 1.0, 0.0})
+       Triangle(Vertex3D({-10.0f, 10.0f, 0.0f}),
+                 Vertex3D({10.0f, 10.0f, 0.0f}),
+                 Vertex3D({10.0f, -10.0f, 0.0f}),
+                 Material({1.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
+        ),
+        Triangle(Vertex3D({10.0f, -10.0f, 0.0f}),
+                 Vertex3D({-10.0f, -10.0f, 0.0f}),
+                 Vertex3D({-10.0f, 10.0f, 0.0f}),
+                 Material({1.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
         )
     };
 
