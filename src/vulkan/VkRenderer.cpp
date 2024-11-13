@@ -160,12 +160,12 @@ void VkRenderer::createTriangleData() {
        Triangle(Vertex3D({-10.0f, 10.0f, 0.0f}),
                  Vertex3D({10.0f, 10.0f, 0.0f}),
                  Vertex3D({10.0f, -10.0f, 0.0f}),
-                 Material({1.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
+                 Material({0.4, 0.4, 0.4}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
         ),
         Triangle(Vertex3D({10.0f, -10.0f, 0.0f}),
                  Vertex3D({-10.0f, -10.0f, 0.0f}),
                  Vertex3D({-10.0f, 10.0f, 0.0f}),
-                 Material({1.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
+                 Material({0.4, 0.4, 0.4}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
         )
     };
 
