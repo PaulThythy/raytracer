@@ -169,6 +169,11 @@ void VkRenderer::createTriangleData() {
         )
     };
 
+    Material mat({0.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 1.0f, 1.0f, 64.0f);
+    Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
+    std::vector<Triangle> sphereGeom = sphere.sphereGeometry(30, 30);
+    m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));
+
     VkDeviceSize bufferSize;
 
     if (m_triangles.empty()) {

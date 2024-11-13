@@ -24,6 +24,7 @@
 #include "math/Vertex.h"
 #include "math/Triangle.h"
 #include "math/Material.h"
+#include "math/Sphere.h"
 
 class VkRenderer {
 public:

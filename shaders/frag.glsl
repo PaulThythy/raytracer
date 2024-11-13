@@ -55,7 +55,7 @@ struct Light {
 
 // Create a list of lights
 Light lights[NUM_LIGHTS] = Light[](
-    Light(vec3(0.0, 0.0, -1.0), vec3(1.0, 1.0, 1.0), 0.7)
+    Light(vec3(0.0, 0.0, 3.0), vec3(1.0, 1.0, 1.0), 0.8)
 );
 
 layout(location = 0) in vec2 fragUV;
