@@ -1,10 +1,10 @@
 #version 450
 
-#define SAMPLES 1
-#define BOUNCES 1
+#define SAMPLES 100
+#define BOUNCES 10
 #define PI 3.141592653589793238462643
 
-//from https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
+// From https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
 float rand(vec2 co) {
     return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
 }
@@ -15,25 +15,30 @@ struct Ray {
 };
 
 struct Material {
-	vec3 albedo;
-	vec3 specular;
-	vec3 emission;
-	float emissionStrength;
-	float roughness;
-	float specularHighlight;
-	float specularExponent;
+    vec3 albedo;
+    vec3 specular;
+    vec3 emission;
+    float emissionStrength;
+    float roughness;
+    float specularHighlight;
+    float specularExponent;
 };
 
 struct HitRecord {
-	vec3 position;
-	vec3 normal;
-	Material material;
+    vec3 position;
+    vec3 normal;
+    Material material;
+};
+
+struct Vertex {
+    vec3 position;
+    vec3 normal;
 };
 
 struct Triangle {
-    vec3 v0; 
-    vec3 v1;
-    vec3 v2;
+    Vertex v0;
+    Vertex v1;
+    Vertex v2;
     Material material;
 };
 
@@ -62,7 +67,7 @@ layout(location = 0) in vec2 fragUV;
 
 layout(location = 0) out vec4 outColor;
 
-layout(binding = 0) uniform UniformBufferObject {
+layout(std140, set = 0, binding = 0) uniform UniformBufferObject {
     vec3 position;
     vec3 lookAt;
     vec3 front;
@@ -74,6 +79,11 @@ layout(binding = 0) uniform UniformBufferObject {
     float nearPlane;
     float farPlane;
 } cameraUBO;
+
+// Update storage buffer binding
+layout(std140, set = 0, binding = 1) buffer Triangles {
+    Triangle triangles[];
+} trianglesBuffer;
 
 Ray getCameraRay(vec2 uv, int sampleIndex) {
     // Convert UV coordinates from [0,1] to [-1,1].
@@ -104,7 +114,7 @@ Ray getCameraRay(vec2 uv, int sampleIndex) {
     // In this case, world space and camera space are the same
     vec3 rayDirWorldSpace = normalize(rayDirCameraSpace);
 
-    // create the ray
+    // Create the ray
     Ray ray;
     ray.origin = cameraUBO.position;
     ray.direction = rayDirWorldSpace;
@@ -177,27 +187,23 @@ bool rayIntersectsCylinder(Ray ray, Cylinder cylinder, out float t) {
     return true;
 }
 
-layout(set = 0, binding = 1) buffer Triangles {
-    Triangle triangles[];
-};
-
-bool rayIntersectsTriangle(Ray ray, Triangle tri, out float t) {
+bool rayIntersectsTriangle(Ray ray, Triangle tri, out float t, out float u, out float v) {
     const float EPSILON = 1e-6;
-    vec3 edge1 = tri.v1 - tri.v0;
-    vec3 edge2 = tri.v2 - tri.v0;
+    vec3 edge1 = tri.v1.position - tri.v0.position;
+    vec3 edge2 = tri.v2.position - tri.v0.position;
     vec3 h = cross(ray.direction, edge2);
     float a = dot(edge1, h);
     if (abs(a) < EPSILON)
         return false; // The ray is parallel to the triangle
 
     float f = 1.0 / a;
-    vec3 s = ray.origin - tri.v0;
-    float u = f * dot(s, h);
+    vec3 s = ray.origin - tri.v0.position;
+    u = f * dot(s, h);
     if (u < 0.0 || u > 1.0)
         return false;
 
     vec3 q = cross(s, edge1);
-    float v = f * dot(ray.direction, q);
+    v = f * dot(ray.direction, q);
     if (v < 0.0 || u + v > 1.0)
         return false;
 
@@ -241,7 +247,6 @@ vec3 calculateLighting(HitRecord hitRecord, Ray ray) {
 }
 
 void main() {
-
     vec4 accumulatedColor = vec4(0.0);
 
     for (int i = 0; i < SAMPLES; i++) {
@@ -251,26 +256,34 @@ void main() {
         float closestT = 1e30;
         HitRecord closestHitRecord;
 
-        for (int j = 0; j < triangles.length(); ++j) {
+        for (int j = 0; j < trianglesBuffer.triangles.length(); ++j) {
             float t;
-            if (rayIntersectsTriangle(ray, triangles[j], t)) {
+            float u, v;
+            if (rayIntersectsTriangle(ray, trianglesBuffer.triangles[j], t, u, v)) {
                 if (t < closestT && t > 0.0) {
                     closestT = t;
                     hit = true;
                     closestHitRecord.position = ray.origin + t * ray.direction;
-                    closestHitRecord.normal = normalize(cross(triangles[j].v1 - triangles[j].v0, triangles[j].v2 - triangles[j].v0));
-                    closestHitRecord.material = triangles[j].material;
+
+                    // Interpolate normals using barycentric coordinates
+                    closestHitRecord.normal = normalize(
+                        (1.0 - u - v) * trianglesBuffer.triangles[j].v0.normal +
+                        u * trianglesBuffer.triangles[j].v1.normal +
+                        v * trianglesBuffer.triangles[j].v2.normal
+                    );
+
+                    closestHitRecord.material = trianglesBuffer.triangles[j].material;
                 }
             }
         }
 
-        float t;
-        if (rayIntersectsCylinder(ray, xAxisHelper, t)) {
-            if (t < closestT && t > 0.0) {
-                closestT = t;
+        float t_cyl;
+        if (rayIntersectsCylinder(ray, xAxisHelper, t_cyl)) {
+            if (t_cyl < closestT && t_cyl > 0.0) {
+                closestT = t_cyl;
                 hit = true;
-                closestHitRecord.position = ray.origin + t * ray.direction;
-                closestHitRecord.normal = normalize(ray.origin + t * ray.direction - xAxisHelper.baseCenter);
+                closestHitRecord.position = ray.origin + t_cyl * ray.direction;
+                closestHitRecord.normal = normalize(ray.origin + t_cyl * ray.direction - xAxisHelper.baseCenter);
                 closestHitRecord.material.albedo = xAxisHelper.color.rgb;
                 closestHitRecord.material.specular = vec3(0.0);
                 closestHitRecord.material.emission = vec3(0.0);
@@ -278,12 +291,12 @@ void main() {
                 closestHitRecord.material.specularExponent = 32.0;
             }
         }
-        if (rayIntersectsCylinder(ray, yAxisHelper, t)) {
-            if (t < closestT && t > 0.0) {
-                closestT = t;
+        if (rayIntersectsCylinder(ray, yAxisHelper, t_cyl)) {
+            if (t_cyl < closestT && t_cyl > 0.0) {
+                closestT = t_cyl;
                 hit = true;
-                closestHitRecord.position = ray.origin + t * ray.direction;
-                closestHitRecord.normal = normalize(ray.origin + t * ray.direction - yAxisHelper.baseCenter);
+                closestHitRecord.position = ray.origin + t_cyl * ray.direction;
+                closestHitRecord.normal = normalize(ray.origin + t_cyl * ray.direction - yAxisHelper.baseCenter);
                 closestHitRecord.material.albedo = yAxisHelper.color.rgb;
                 closestHitRecord.material.specular = vec3(0.0);
                 closestHitRecord.material.emission = vec3(0.0);
@@ -291,12 +304,12 @@ void main() {
                 closestHitRecord.material.specularExponent = 32.0;
             }
         }
-        if (rayIntersectsCylinder(ray, zAxisHelper, t)) {
-            if (t < closestT && t > 0.0) {
-                closestT = t;
+        if (rayIntersectsCylinder(ray, zAxisHelper, t_cyl)) {
+            if (t_cyl < closestT && t_cyl > 0.0) {
+                closestT = t_cyl;
                 hit = true;
-                closestHitRecord.position = ray.origin + t * ray.direction;
-                closestHitRecord.normal = normalize(ray.origin + t * ray.direction - zAxisHelper.baseCenter);
+                closestHitRecord.position = ray.origin + t_cyl * ray.direction;
+                closestHitRecord.normal = normalize(ray.origin + t_cyl * ray.direction - zAxisHelper.baseCenter);
                 closestHitRecord.material.albedo = zAxisHelper.color.rgb;
                 closestHitRecord.material.specular = vec3(0.0);
                 closestHitRecord.material.emission = vec3(0.0);

@@ -156,22 +156,24 @@ bool VkRenderer::checkValidationLayerSupport() {
 }
 
 void VkRenderer::createTriangleData() {
+    glm::vec3 planeNormal(0.0f, 0.0f, 1.0f); // Assuming plane is in XY plane
+
     m_triangles = {
-       Triangle(Vertex3D({-10.0f, 10.0f, 0.0f}),
-                 Vertex3D({10.0f, 10.0f, 0.0f}),
-                 Vertex3D({10.0f, -10.0f, 0.0f}),
+       Triangle(Vertex3D({-10.0f, 10.0f, 0.0f}, planeNormal),
+                 Vertex3D({10.0f, 10.0f, 0.0f}, planeNormal),
+                 Vertex3D({10.0f, -10.0f, 0.0f}, planeNormal),
                  Material({0.4, 0.4, 0.4}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
         ),
-        Triangle(Vertex3D({10.0f, -10.0f, 0.0f}),
-                 Vertex3D({-10.0f, -10.0f, 0.0f}),
-                 Vertex3D({-10.0f, 10.0f, 0.0f}),
+        Triangle(Vertex3D({10.0f, -10.0f, 0.0f}, planeNormal),
+                 Vertex3D({-10.0f, -10.0f, 0.0f}, planeNormal),
+                 Vertex3D({-10.0f, 10.0f, 0.0f}, planeNormal),
                  Material({0.4, 0.4, 0.4}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
         )
     };
 
-    Material mat({0.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 1.0f, 1.0f, 64.0f);
+    Material mat({0.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f, 1.0f, 64.0f);
     Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
-    std::vector<Triangle> sphereGeom = sphere.sphereGeometry(30, 30);
+    std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
     m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));
 
     VkDeviceSize bufferSize;

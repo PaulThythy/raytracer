@@ -40,7 +40,7 @@ struct Sphere {
             }
         }
 
-        // Generate triangles
+        // Generate triangles with normals
         for (unsigned int i = 0; i < stacks; ++i) {
             for (unsigned int j = 0; j < slices; ++j) {
                 // Define the four corners of the current quad
@@ -49,24 +49,28 @@ struct Sphere {
                 glm::vec3 v3 = vertices[i + 1][j + 1];
                 glm::vec3 v4 = vertices[i][j + 1];
 
+                // Calculate normals
+                glm::vec3 n1 = glm::normalize(v1 - m_center);
+                glm::vec3 n2 = glm::normalize(v2 - m_center);
+                glm::vec3 n3 = glm::normalize(v3 - m_center);
+                glm::vec3 n4 = glm::normalize(v4 - m_center);
+
                 // First triangle of the quad
+                Vertex3D vertex0(v1, n1);
+                Vertex3D vertex1(v2, n2);
+                Vertex3D vertex2(v3, n3);
+
                 triangles.emplace_back(
-                    Triangle(
-                        Vertex3D(v1),
-                        Vertex3D(v2),
-                        Vertex3D(v3),
-                        m_material
-                    )
+                    Triangle(vertex0, vertex1, vertex2, m_material)
                 );
 
                 // Second triangle of the quad
+                Vertex3D vertex3(v1, n1);
+                Vertex3D vertex4(v3, n3);
+                Vertex3D vertex5(v4, n4);
+
                 triangles.emplace_back(
-                    Triangle(
-                        Vertex3D(v1),
-                        Vertex3D(v3),
-                        Vertex3D(v4),
-                        m_material
-                    )
+                    Triangle(vertex3, vertex4, vertex5, m_material)
                 );
             }
         }
