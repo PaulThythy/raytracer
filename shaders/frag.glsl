@@ -50,6 +50,16 @@ struct Cylinder {
     vec4 color;
 };
 
+struct Sphere {
+    vec3 center;
+    float radius;
+    Material material;
+};
+
+layout(std140, set = 0, binding = 2) buffer Spheres {
+    Sphere spheres[];
+} sphereBuffer;
+
 struct Light {
     vec3 position;
     vec3 color;
@@ -80,7 +90,6 @@ layout(std140, set = 0, binding = 0) uniform UniformBufferObject {
     float farPlane;
 } cameraUBO;
 
-// Update storage buffer binding
 layout(std140, set = 0, binding = 1) buffer Triangles {
     Triangle triangles[];
 } trianglesBuffer;
@@ -215,6 +224,33 @@ bool rayIntersectsTriangle(Ray ray, Triangle tri, out float t, out float u, out 
     }
 }
 
+bool rayIntersectsSphere(Ray ray, Sphere sphere, out float t) {
+    vec3 oc = ray.origin - sphere.center;
+    float a = dot(ray.direction, ray.direction);
+    float b = 2.0 * dot(oc, ray.direction);
+    float c = dot(oc, oc) - sphere.radius * sphere.radius;
+
+    float discriminant = b * b - 4.0 * a * c;
+    if (discriminant < 0.0) {
+        return false; // No intersection
+    }
+
+    float sqrtDiscriminant = sqrt(discriminant);
+    float t0 = (-b - sqrtDiscriminant) / (2.0 * a);
+    float t1 = (-b + sqrtDiscriminant) / (2.0 * a);
+
+    // Find the nearest positive t
+    if (t0 > 0.0) {
+        t = t0;
+        return true;
+    }
+    if (t1 > 0.0) {
+        t = t1;
+        return true;
+    }
+    return false; // Intersection behind the ray origin
+}
+
 vec3 calculateLighting(HitRecord hitRecord, Ray ray) {
     vec3 color = vec3(0.0);
 
@@ -256,6 +292,7 @@ void main() {
         float closestT = 1e30;
         HitRecord closestHitRecord;
 
+        // Iterate over triangles
         for (int j = 0; j < trianglesBuffer.triangles.length(); ++j) {
             float t;
             float u, v;
@@ -277,6 +314,25 @@ void main() {
             }
         }
 
+        // Iterate over spheres
+        for (int k = 0; k < sphereBuffer.spheres.length(); ++k) {
+            float tSphere;
+            if (rayIntersectsSphere(ray, sphereBuffer.spheres[k], tSphere)) {
+                if (tSphere < closestT && tSphere > 0.0) {
+                    closestT = tSphere;
+                    hit = true;
+                    closestHitRecord.position = ray.origin + tSphere * ray.direction;
+
+                    // Calculate normal at the intersection point
+                    closestHitRecord.normal = normalize(closestHitRecord.position - sphereBuffer.spheres[k].center);
+
+                    // Assign the sphere's material
+                    closestHitRecord.material = sphereBuffer.spheres[k].material;
+                }
+            }
+        }
+
+        // Iterate over cylinders
         float t_cyl;
         if (rayIntersectsCylinder(ray, xAxisHelper, t_cyl)) {
             if (t_cyl < closestT && t_cyl > 0.0) {

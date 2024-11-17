@@ -25,7 +25,7 @@ void VkRenderer::initVulkan(GLFWwindow* window) {
     createGraphicsPipeline();
     createCommandPool();
     createFramebuffers();
-    createTriangleData();
+    createData();
     createVertexBuffer(m_vertices);
     createIndexBuffer(m_indices);
     createUniformBuffers();
@@ -74,6 +74,9 @@ void VkRenderer::cleanupVulkan() {
 
     vkDestroyBuffer(m_device, m_triangleBuffer, m_allocator);
     vkFreeMemory(m_device, m_triangleBufferMemory, m_allocator);
+
+    vkDestroyBuffer(m_device, m_sphereBuffer, m_allocator);
+    vkFreeMemory(m_device, m_sphereBufferMemory, m_allocator);
 
     for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
         vkDestroyBuffer(m_device, m_uniformBuffers[i], m_allocator);
@@ -155,7 +158,7 @@ bool VkRenderer::checkValidationLayerSupport() {
     return true;
 }
 
-void VkRenderer::createTriangleData() {
+void VkRenderer::createData() {
     glm::vec3 planeNormal(0.0f, 0.0f, 1.0f); // Assuming plane is in XY plane
 
     m_triangles = {
@@ -173,31 +176,56 @@ void VkRenderer::createTriangleData() {
 
     Material mat({0.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f, 1.0f, 64.0f);
     Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
-    std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
-    m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));
+    /*std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
+    m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));*/
+    m_spheres = {
+        sphere
+    };
 
-    VkDeviceSize bufferSize;
+    VkDeviceSize triangleBufferSize;
 
     if (m_triangles.empty()) {
-        bufferSize = sizeof(Triangle);
-        createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_triangleBuffer, m_triangleBufferMemory);
+        triangleBufferSize = sizeof(Triangle);
+        createBuffer(triangleBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_triangleBuffer, m_triangleBufferMemory);
 
         void* data;
-        vkMapMemory(m_device, m_triangleBufferMemory, 0, bufferSize, 0, &data);
-        memset(data, 0, static_cast<size_t>(bufferSize));
+        vkMapMemory(m_device, m_triangleBufferMemory, 0, triangleBufferSize, 0, &data);
+        memset(data, 0, static_cast<size_t>(triangleBufferSize));
         vkUnmapMemory(m_device, m_triangleBufferMemory);
     }
     else {
-        bufferSize = sizeof(Triangle) * m_triangles.size();
+        triangleBufferSize = sizeof(Triangle) * m_triangles.size();
 
-        createBuffer(bufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        createBuffer(triangleBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             m_triangleBuffer, m_triangleBufferMemory);
 
         void* data;
-        vkMapMemory(m_device, m_triangleBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, m_triangles.data(), static_cast<size_t>(bufferSize));
+        vkMapMemory(m_device, m_triangleBufferMemory, 0, triangleBufferSize, 0, &data);
+        memcpy(data, m_triangles.data(), static_cast<size_t>(triangleBufferSize));
         vkUnmapMemory(m_device, m_triangleBufferMemory);
+    }
+
+    VkDeviceSize sphereBufferSize;
+
+    if (m_spheres.empty()) {
+        sphereBufferSize = sizeof(Sphere);
+        createBuffer(sphereBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_sphereBuffer, m_sphereBufferMemory);
+
+        void* data;
+        vkMapMemory(m_device, m_sphereBufferMemory, 0, sphereBufferSize, 0, &data);
+        memset(data, 0, static_cast<size_t>(sphereBufferSize));
+        vkUnmapMemory(m_device, m_sphereBufferMemory);
+    }
+    else {
+        sphereBufferSize = sizeof(Sphere) * m_spheres.size();
+
+        createBuffer(sphereBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_sphereBuffer, m_sphereBufferMemory);
+
+        void* data;
+        vkMapMemory(m_device, m_sphereBufferMemory, 0, sphereBufferSize, 0, &data);
+        memcpy(data, m_spheres.data(), static_cast<size_t>(sphereBufferSize));
+        vkUnmapMemory(m_device, m_sphereBufferMemory);
     }
 }
 
@@ -218,7 +246,15 @@ void VkRenderer::createDescriptorSetLayout() {
     triangleBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     triangleBufferLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 2> bindings = {uboLayoutBinding, triangleBufferLayoutBinding};
+    //SSBO for spheres
+    VkDescriptorSetLayoutBinding sphereBufferLayoutBinding{};
+    sphereBufferLayoutBinding.binding = 2;
+    sphereBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    sphereBufferLayoutBinding.descriptorCount = 1;
+    sphereBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    sphereBufferLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, triangleBufferLayoutBinding, sphereBufferLayoutBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -248,7 +284,7 @@ void VkRenderer::createDescriptorSets() {
 
     // For each Descriptor Set, link the corresponding uniform buffer
     for (size_t i = 0; i < m_swapchainImages.size(); i++) {
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = m_uniformBuffers[i]; 
@@ -276,12 +312,25 @@ void VkRenderer::createDescriptorSets() {
         descriptorWrites[1].descriptorCount = 1;
         descriptorWrites[1].pBufferInfo = &triangleBufferInfo;
 
+        VkDescriptorBufferInfo sphereBufferInfo{};
+        sphereBufferInfo.buffer = m_sphereBuffer;
+        sphereBufferInfo.offset = 0;
+        sphereBufferInfo.range = m_spheres.empty() ? sizeof(Sphere) : sizeof(Sphere) * m_spheres.size();
+
+        descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[2].dstSet = m_descriptorSets[i];
+        descriptorWrites[2].dstBinding = 2;
+        descriptorWrites[2].dstArrayElement = 0;
+        descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[2].descriptorCount = 1;
+        descriptorWrites[2].pBufferInfo = &sphereBufferInfo;
+
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
 void VkRenderer::createDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    std::array<VkDescriptorPoolSize, 3> poolSizes{};
 
     //for camera
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -290,6 +339,10 @@ void VkRenderer::createDescriptorPool() {
     //for triangles
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     poolSizes[1].descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
+
+    //for spheres
+    poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSizes[2].descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;

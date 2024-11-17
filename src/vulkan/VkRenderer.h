@@ -80,6 +80,10 @@ private:
 	VkBuffer m_triangleBuffer;
 	VkDeviceMemory m_triangleBufferMemory;
 
+	std::vector<Sphere> m_spheres;
+	VkBuffer m_sphereBuffer;
+	VkDeviceMemory m_sphereBufferMemory;
+
 	VkDescriptorPool m_descriptorPool;
 	VkDescriptorPool m_uiDescriptorPool;
 
@@ -168,7 +172,7 @@ private:
 	void createSyncObjects();
 	void createUICommandBuffers();
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
-	void createTriangleData();
+	void createData();
 	void createUICommandPool();
 	void createUIDescriptorPool();
 	void createUIFramebuffers();
