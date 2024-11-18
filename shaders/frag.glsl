@@ -60,7 +60,7 @@ struct Light {
 
 // Create a list of lights
 Light lights[NUM_LIGHTS] = Light[](
-    Light(vec3(0.0, 0.0, 3.0), vec3(1.0, 1.0, 1.0), 0.8)
+    Light(vec3(0.0, 0.0, 3.0), vec3(1.0, 1.0, 1.0), 1.0)
 );
 
 layout(location = 0) in vec2 fragUV;
@@ -325,5 +325,9 @@ void main() {
     }
 
     // Average the color over the number of samples
-    outColor = accumulatedColor / float(SAMPLES);
+    vec3 averagedColor = (accumulatedColor.rgb) / float(SAMPLES);
+
+    vec3 gammaCorrectedColor = gammaCorrect(averagedColor);
+
+    outColor = vec4(gammaCorrectedColor, 1.0);
 }

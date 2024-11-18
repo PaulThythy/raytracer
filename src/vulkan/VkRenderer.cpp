@@ -174,7 +174,7 @@ void VkRenderer::createData() {
         )
     };
 
-    Material mat({1.0f, 0.765557f, 0.336057f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f);
+    Material mat({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f);
     Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
     /*std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
     m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));*/
