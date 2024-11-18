@@ -53,7 +53,7 @@ void VkRenderer::cleanupVulkan() {
     vkFreeCommandBuffers(m_device, m_commandPool, static_cast<uint32_t>(m_commandBuffers.size()), m_commandBuffers.data());
     vkFreeCommandBuffers(m_device, m_uiCommandPool, static_cast<uint32_t>(m_uiCommandBuffers.size()), m_uiCommandBuffers.data());
 
-    //TODO free descriptor sets
+    //TODO free descriptor sets only if the flag VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT is enabled
 
     vkDestroyCommandPool(m_device, m_commandPool, m_allocator);
     vkDestroyCommandPool(m_device, m_uiCommandPool, m_allocator);

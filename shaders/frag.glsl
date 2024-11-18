@@ -1,6 +1,6 @@
 #version 450
 
-#define SAMPLES 100
+#define SAMPLES 1
 #define BOUNCES 10
 #define PI 3.141592653589793238462643
 
