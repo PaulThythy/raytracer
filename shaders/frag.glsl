@@ -16,12 +16,10 @@ struct Ray {
 
 struct Material {
     vec3 albedo;
-    vec3 specular;
     vec3 emission;
     float emissionStrength;
     float roughness;
-    float specularHighlight;
-    float specularExponent;
+    float metallic;
 };
 
 struct HitRecord {
@@ -40,14 +38,6 @@ struct Triangle {
     Vertex v1;
     Vertex v2;
     Material material;
-};
-
-struct Cylinder {
-    vec3 baseCenter;
-    vec3 axis;
-    float radius;
-    float height;
-    vec4 color;
 };
 
 struct Sphere {
@@ -131,71 +121,6 @@ Ray getCameraRay(vec2 uv, int sampleIndex) {
     return ray;
 }
 
-Cylinder xAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(1.0, 0.0, 0.0)), 0.005, 1.0, vec4(1.0, 0.0, 0.0, 1.0));
-Cylinder yAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(0.0, 1.0, 0.0)), 0.005, 1.0, vec4(0.0, 1.0, 0.0, 1.0));
-Cylinder zAxisHelper = Cylinder(vec3(0.0, 0.0, 0.0), normalize(vec3(0.0, 0.0, 1.0)), 0.005, 1.0, vec4(0.0, 0.0, 1.0, 1.0));
-
-bool rayIntersectsCylinder(Ray ray, Cylinder cylinder, out float t) {
-    vec3 d = ray.direction;
-    vec3 m = ray.origin - cylinder.baseCenter;
-    vec3 n = cylinder.axis;
-
-    // Calculate the coefficients of the quadratic equation
-    float mdn = dot(m, n);
-    float ddn = dot(d, n);
-    vec3 m_cross_n = m - mdn * n;
-    vec3 d_cross_n = d - ddn * n;
-
-    float a = dot(d_cross_n, d_cross_n);
-    float b = 2.0 * dot(d_cross_n, m_cross_n);
-    float c = dot(m_cross_n, m_cross_n) - cylinder.radius * cylinder.radius;
-
-    // Solve the quadratic equation a*t^2 + b*t + c = 0
-    float discriminant = b * b - 4.0 * a * c;
-    if (discriminant < 0.0) {
-        return false; // No intersection
-    }
-
-    float sqrtDiscriminant = sqrt(discriminant);
-
-    // Find the roots (t0 and t1)
-    float t0 = (-b - sqrtDiscriminant) / (2.0 * a);
-    float t1 = (-b + sqrtDiscriminant) / (2.0 * a);
-
-    // Sort the roots
-    if (t0 > t1) {
-        float temp = t0;
-        t0 = t1;
-        t1 = temp;
-    }
-
-    // Check if the intersections are within the cylinder's bounds
-    float y0 = mdn + t0 * ddn;
-    float y1 = mdn + t1 * ddn;
-
-    if (y0 < 0.0) {
-        if (y1 < 0.0) {
-            return false; // Both intersections are below the cylinder
-        } else {
-            // Intersection with the bottom cap of the cylinder
-            t0 = t1;
-            y0 = y1;
-        }
-    } else if (y0 > cylinder.height) {
-        if (y1 > cylinder.height) {
-            return false; // Both intersections are above the cylinder
-        } else {
-            // Intersection with the top cap of the cylinder
-            t0 = t1;
-            y0 = y1;
-        }
-    }
-
-    // Valid intersection
-    t = t0;
-    return true;
-}
-
 bool rayIntersectsTriangle(Ray ray, Triangle tri, out float t, out float u, out float v) {
     const float EPSILON = 1e-6;
     vec3 edge1 = tri.v1.position - tri.v0.position;
@@ -251,35 +176,91 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, out float t) {
     return false; // Intersection behind the ray origin
 }
 
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NdotH = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
+
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
+
+    return a2 / denom;
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+vec3 FresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
 vec3 calculateLighting(HitRecord hitRecord, Ray ray) {
-    vec3 color = vec3(0.0);
+    vec3 N = normalize(hitRecord.normal);
+    vec3 V = normalize(-ray.direction);
+    vec3 Lo = vec3(0.0);
+
+    // Calculate reflectance at normal incidence; if metallic, use albedo color
+    vec3 F0 = vec3(0.04); // Dielectric reflectance
+    F0 = mix(F0, hitRecord.material.albedo, hitRecord.material.metallic);
 
     for (int i = 0; i < NUM_LIGHTS; ++i) {
         Light light = lights[i];
+        vec3 L = normalize(light.position - hitRecord.position);
+        vec3 H = normalize(V + L);
+        float distance = length(light.position - hitRecord.position);
+        float attenuation = 1.0 / (distance * distance);
+        vec3 radiance = light.color * light.intensity * attenuation;
 
-        // Calculate light direction
-        vec3 lightDir = normalize(light.position - hitRecord.position);
+        // Cook-Torrance BRDF
+        float NDF = DistributionGGX(N, H, hitRecord.material.roughness);
+        float G = GeometrySmith(N, V, L, hitRecord.material.roughness);
+        vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
 
-        // Ambient Component
-        vec3 ambient = 0.1 * hitRecord.material.albedo;
+        vec3 numerator = NDF * G * F;
+        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001; // Avoid division by zero
+        vec3 specular = numerator / denominator;
 
-        // Diffuse Component
-        float diff = max(dot(hitRecord.normal, lightDir), 0.0);
-        vec3 diffuse = diff * hitRecord.material.albedo * light.color * light.intensity;
+        // kS is equal to Fresnel
+        vec3 kS = F;
+        // kD is diffuse component (energy conservation)
+        vec3 kD = vec3(1.0) - kS;
+        // If metallic, diffuse component is reduced
+        kD *= 1.0 - hitRecord.material.metallic;
 
-        // Specular Component
-        vec3 viewDir = normalize(-ray.direction);
-        vec3 reflectDir = reflect(-lightDir, hitRecord.normal);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), hitRecord.material.specularExponent);
-        vec3 specular = spec * hitRecord.material.specular * light.color * light.intensity;
+        // Lambertian diffuse
+        float NdotL = max(dot(N, L), 0.0);
+        vec3 diffuse = kD * hitRecord.material.albedo / PI;
 
-        color += ambient + diffuse + specular;
+        Lo += (diffuse + specular) * radiance * NdotL;
     }
 
-    // Add emission if any
-    color += hitRecord.material.emission * hitRecord.material.emissionStrength;
+    // Emission
+    vec3 emission = hitRecord.material.emission * hitRecord.material.emissionStrength;
 
+    // Ambient term (could be improved with environment maps)
+    vec3 ambient = vec3(0.03) * hitRecord.material.albedo;
+
+    vec3 color = ambient + Lo + emission;
     return color;
+}
+
+vec3 gammaCorrect(vec3 color) {
+    float gamma = 2.2;
+    return pow(color, vec3(1.0 / gamma));
 }
 
 void main() {
@@ -329,48 +310,6 @@ void main() {
                     // Assign the sphere's material
                     closestHitRecord.material = sphereBuffer.spheres[k].material;
                 }
-            }
-        }
-
-        // Iterate over cylinders
-        float t_cyl;
-        if (rayIntersectsCylinder(ray, xAxisHelper, t_cyl)) {
-            if (t_cyl < closestT && t_cyl > 0.0) {
-                closestT = t_cyl;
-                hit = true;
-                closestHitRecord.position = ray.origin + t_cyl * ray.direction;
-                closestHitRecord.normal = normalize(ray.origin + t_cyl * ray.direction - xAxisHelper.baseCenter);
-                closestHitRecord.material.albedo = xAxisHelper.color.rgb;
-                closestHitRecord.material.specular = vec3(0.0);
-                closestHitRecord.material.emission = vec3(0.0);
-                closestHitRecord.material.emissionStrength = 0.0;
-                closestHitRecord.material.specularExponent = 32.0;
-            }
-        }
-        if (rayIntersectsCylinder(ray, yAxisHelper, t_cyl)) {
-            if (t_cyl < closestT && t_cyl > 0.0) {
-                closestT = t_cyl;
-                hit = true;
-                closestHitRecord.position = ray.origin + t_cyl * ray.direction;
-                closestHitRecord.normal = normalize(ray.origin + t_cyl * ray.direction - yAxisHelper.baseCenter);
-                closestHitRecord.material.albedo = yAxisHelper.color.rgb;
-                closestHitRecord.material.specular = vec3(0.0);
-                closestHitRecord.material.emission = vec3(0.0);
-                closestHitRecord.material.emissionStrength = 0.0;
-                closestHitRecord.material.specularExponent = 32.0;
-            }
-        }
-        if (rayIntersectsCylinder(ray, zAxisHelper, t_cyl)) {
-            if (t_cyl < closestT && t_cyl > 0.0) {
-                closestT = t_cyl;
-                hit = true;
-                closestHitRecord.position = ray.origin + t_cyl * ray.direction;
-                closestHitRecord.normal = normalize(ray.origin + t_cyl * ray.direction - zAxisHelper.baseCenter);
-                closestHitRecord.material.albedo = zAxisHelper.color.rgb;
-                closestHitRecord.material.specular = vec3(0.0);
-                closestHitRecord.material.emission = vec3(0.0);
-                closestHitRecord.material.emissionStrength = 0.0;
-                closestHitRecord.material.specularExponent = 32.0;
             }
         }
 

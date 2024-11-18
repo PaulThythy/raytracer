@@ -165,16 +165,16 @@ void VkRenderer::createData() {
        Triangle(Vertex3D({-10.0f, 10.0f, 0.0f}, planeNormal),
                  Vertex3D({10.0f, 10.0f, 0.0f}, planeNormal),
                  Vertex3D({10.0f, -10.0f, 0.0f}, planeNormal),
-                 Material({0.4, 0.4, 0.4}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
+                 Material({0.4, 0.4, 0.4}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 0.0f)
         ),
         Triangle(Vertex3D({10.0f, -10.0f, 0.0f}, planeNormal),
                  Vertex3D({-10.0f, -10.0f, 0.0f}, planeNormal),
                  Vertex3D({-10.0f, 10.0f, 0.0f}, planeNormal),
-                 Material({0.4, 0.4, 0.4}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f, 64.0f)
+                 Material({0.4, 0.4, 0.4}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 0.0f)
         )
     };
 
-    Material mat({0.0, 1.0, 0.0}, {0.7f, 0.7f, 0.7f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f, 1.0f, 64.0f);
+    Material mat({1.0f, 0.765557f, 0.336057f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f);
     Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
     /*std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
     m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));*/
