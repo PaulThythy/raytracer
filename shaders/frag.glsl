@@ -1,7 +1,7 @@
 #version 450
 
 #define SAMPLES 1
-#define BOUNCES 10
+#define BOUNCES 30
 #define PI 3.141592653589793238462643
 
 // From https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
@@ -176,158 +176,125 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, out float t) {
     return false; // Intersection behind the ray origin
 }
 
-float DistributionGGX(vec3 N, vec3 H, float roughness) {
-    float a = roughness * roughness;
-    float a2 = a * a;
-    float NdotH = max(dot(N, H), 0.0);
-    float NdotH2 = NdotH * NdotH;
+vec3 randomHemisphereDirection(vec3 normal, vec2 seed) {
+    float phi = 2.0 * PI * seed.x;
+    float cosTheta = pow(rand(seed), 1.0 / (1.0 + 1.0));
+    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
+    vec3 tangent = normalize(cross(vec3(0.0, 1.0, 0.0), normal));
+    vec3 bitangent = cross(normal, tangent);
 
-    return a2 / denom;
+    return normalize(cos(phi) * sinTheta * tangent +
+                     sin(phi) * sinTheta * bitangent +
+                     cosTheta * normal);
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness) {
-    float r = roughness + 1.0;
-    float k = (r * r) / 8.0;
-
-    return NdotV / (NdotV * (1.0 - k) + k);
-}
-
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
-    float NdotV = max(dot(N, V), 0.0);
-    float NdotL = max(dot(N, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
-
-    return ggx1 * ggx2;
-}
-
-vec3 FresnelSchlick(float cosTheta, vec3 F0) {
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
-}
-
-vec3 calculateLighting(HitRecord hitRecord, Ray ray) {
-    vec3 N = normalize(hitRecord.normal);
-    vec3 V = normalize(-ray.direction);
+vec3 calculateDirectLighting(HitRecord hitRecord) {
     vec3 Lo = vec3(0.0);
-
-    // Calculate reflectance at normal incidence; if metallic, use albedo color
-    vec3 F0 = vec3(0.04); // Dielectric reflectance
-    F0 = mix(F0, hitRecord.material.albedo, hitRecord.material.metallic);
+    vec3 N = normalize(hitRecord.normal);
 
     for (int i = 0; i < NUM_LIGHTS; ++i) {
         Light light = lights[i];
         vec3 L = normalize(light.position - hitRecord.position);
-        vec3 H = normalize(V + L);
+        vec3 H = normalize(L + normalize(-cameraUBO.position + hitRecord.position));
         float distance = length(light.position - hitRecord.position);
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance = light.color * light.intensity * attenuation;
 
-        // Cook-Torrance BRDF
-        float NDF = DistributionGGX(N, H, hitRecord.material.roughness);
-        float G = GeometrySmith(N, V, L, hitRecord.material.roughness);
-        vec3 F = FresnelSchlick(max(dot(H, V), 0.0), F0);
-
-        vec3 numerator = NDF * G * F;
-        float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.001; // Avoid division by zero
-        vec3 specular = numerator / denominator;
-
-        // kS is equal to Fresnel
-        vec3 kS = F;
-        // kD is diffuse component (energy conservation)
-        vec3 kD = vec3(1.0) - kS;
-        // If metallic, diffuse component is reduced
-        kD *= 1.0 - hitRecord.material.metallic;
-
-        // Lambertian diffuse
+        // Lambertian diffuse term
         float NdotL = max(dot(N, L), 0.0);
-        vec3 diffuse = kD * hitRecord.material.albedo / PI;
+        vec3 diffuse = hitRecord.material.albedo * NdotL;
 
-        Lo += (diffuse + specular) * radiance * NdotL;
+        // Specular term
+        vec3 F0 = vec3(0.04); // Default reflectance at normal incidence
+        F0 = mix(F0, hitRecord.material.albedo, hitRecord.material.metallic);
+        float NDF = max(dot(N, H), 0.0);
+        float G = max(dot(N, L), 0.0);
+        vec3 F = F0 + (1.0 - F0) * pow(1.0 - dot(H, L), 5.0);
+
+        vec3 specular = (NDF * G * F) / (4.0 * NdotL * max(dot(N, L), 0.0) + 0.001);
+
+        Lo += (diffuse + specular) * radiance;
     }
 
-    // Emission
-    vec3 emission = hitRecord.material.emission * hitRecord.material.emissionStrength;
-
-    // Ambient term (could be improved with environment maps)
-    vec3 ambient = vec3(0.03) * hitRecord.material.albedo;
-
-    vec3 color = ambient + Lo + emission;
-    return color;
+    return Lo;
 }
 
-vec3 gammaCorrect(vec3 color) {
-    float gamma = 2.2;
-    return pow(color, vec3(1.0 / gamma));
-}
+vec3 traceRay(Ray initialRay) {
+    vec3 accumulatedColor = vec3(0.0);
+    vec3 throughput = vec3(1.0);
+    Ray ray = initialRay;
 
-void main() {
-    vec4 accumulatedColor = vec4(0.0);
-
-    for (int i = 0; i < SAMPLES; i++) {
-        Ray ray = getCameraRay(fragUV, i);
-
-        bool hit = false;
+    for (int depth = 0; depth < BOUNCES; depth++) {
         float closestT = 1e30;
         HitRecord closestHitRecord;
+        bool hit = false;
 
-        // Iterate over triangles
+        // Check intersections with triangles
         for (int j = 0; j < trianglesBuffer.triangles.length(); ++j) {
-            float t;
-            float u, v;
+            float t, u, v;
             if (rayIntersectsTriangle(ray, trianglesBuffer.triangles[j], t, u, v)) {
-                if (t < closestT && t > 0.0) {
+                if (t < closestT) {
                     closestT = t;
                     hit = true;
                     closestHitRecord.position = ray.origin + t * ray.direction;
-
-                    // Interpolate normals using barycentric coordinates
                     closestHitRecord.normal = normalize(
                         (1.0 - u - v) * trianglesBuffer.triangles[j].v0.normal +
                         u * trianglesBuffer.triangles[j].v1.normal +
                         v * trianglesBuffer.triangles[j].v2.normal
                     );
-
                     closestHitRecord.material = trianglesBuffer.triangles[j].material;
                 }
             }
         }
 
-        // Iterate over spheres
+        // Check intersections with spheres
         for (int k = 0; k < sphereBuffer.spheres.length(); ++k) {
             float tSphere;
             if (rayIntersectsSphere(ray, sphereBuffer.spheres[k], tSphere)) {
-                if (tSphere < closestT && tSphere > 0.0) {
+                if (tSphere < closestT) {
                     closestT = tSphere;
                     hit = true;
                     closestHitRecord.position = ray.origin + tSphere * ray.direction;
-
-                    // Calculate normal at the intersection point
                     closestHitRecord.normal = normalize(closestHitRecord.position - sphereBuffer.spheres[k].center);
-
-                    // Assign the sphere's material
                     closestHitRecord.material = sphereBuffer.spheres[k].material;
                 }
             }
         }
 
-        vec3 color;
-        if (hit) {
-            color = calculateLighting(closestHitRecord, ray);
-        } else {
-            // Background color
-            color = vec3(0.0);
+        if (!hit) {
+            accumulatedColor += throughput * vec3(0.0); // Background color
+            break;
         }
 
-        accumulatedColor += vec4(color, 1.0);
+        // Add emission for the current hit
+        accumulatedColor += throughput * closestHitRecord.material.emission * closestHitRecord.material.emissionStrength;
+
+        // Direct lighting contribution
+        vec3 directLighting = calculateDirectLighting(closestHitRecord);
+        accumulatedColor += throughput * directLighting;
+
+        // Update throughput
+        throughput *= closestHitRecord.material.albedo;
+
+        // Generate a new direction
+        vec3 randomDir = randomHemisphereDirection(closestHitRecord.normal, vec2(rand(ray.origin.xy), rand(ray.direction.xy)));
+        ray.origin = closestHitRecord.position + 0.001 * randomDir;
+        ray.direction = randomDir;
     }
 
-    // Average the color over the number of samples
-    vec3 averagedColor = (accumulatedColor.rgb) / float(SAMPLES);
+    return accumulatedColor;
+}
 
-    vec3 gammaCorrectedColor = gammaCorrect(averagedColor);
+void main() {
+    vec3 accumulatedColor = vec3(0.0);
 
-    outColor = vec4(gammaCorrectedColor, 1.0);
+    for(int i = 0; i < SAMPLES; i++) {
+        Ray ray = getCameraRay(fragUV, i);
+        accumulatedColor += traceRay(ray);
+    }
+
+    accumulatedColor /= float(SAMPLES);
+    accumulatedColor = pow(accumulatedColor, vec3(1.0 / 2.2)); //gamma correction
+    outColor = vec4(accumulatedColor, 1.0);
 }
