@@ -176,12 +176,12 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, out float t) {
     return false; // Intersection behind the ray origin
 }
 
-vec3 randomHemisphereDirection(vec3 normal, vec2 seed) {
-    float phi = 2.0 * PI * seed.x;
-    float cosTheta = pow(rand(seed), 1.0 / (1.0 + 1.0));
+vec3 randomHemisphereDirection(vec3 normal, float rand1, float rand2) {
+    float phi = 2.0 * PI * rand1;
+    float cosTheta = rand2;
     float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
 
-    vec3 tangent = normalize(cross(vec3(0.0, 1.0, 0.0), normal));
+    vec3 tangent = normalize((abs(normal.x) > 0.999) ? cross(vec3(0.0, 1.0, 0.0), normal) : cross(vec3(1.0, 0.0, 0.0), normal));
     vec3 bitangent = cross(normal, tangent);
 
     return normalize(cos(phi) * sinTheta * tangent +
@@ -278,7 +278,9 @@ vec3 traceRay(Ray initialRay) {
         throughput *= closestHitRecord.material.albedo;
 
         // Generate a new direction
-        vec3 randomDir = randomHemisphereDirection(closestHitRecord.normal, vec2(rand(ray.origin.xy), rand(ray.direction.xy)));
+        float rand1 = rand(fragUV.xy + vec2(float(depth), 0.0));
+        float rand2 = rand(fragUV.xy + vec2(0.0, float(depth)));
+        vec3 randomDir = randomHemisphereDirection(closestHitRecord.normal, rand1, rand2);
         ray.origin = closestHitRecord.position + 0.001 * randomDir;
         ray.direction = randomDir;
     }
