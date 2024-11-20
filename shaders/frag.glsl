@@ -186,157 +186,178 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, out float t) {
     return false; // Intersection behind the ray origin
 }
 
-vec3 randomHemisphereDirection(vec3 normal, float rand1, float rand2) {
-    float phi = 2.0 * PI * rand1;
-    float cosTheta = rand2;
-    float sinTheta = sqrt(1.0 - cosTheta * cosTheta);
+vec3 sampleHemisphere(vec3 N, float seed) {
+    float Xi1 = rand(fragUV, seed);
+    float Xi2 = rand(fragUV, seed);
 
-    vec3 tangent = normalize((abs(normal.x) > 0.999) ? cross(vec3(0.0, 1.0, 0.0), normal) : cross(vec3(1.0, 0.0, 0.0), normal));
-    vec3 bitangent = cross(normal, tangent);
+    float theta = acos(sqrt(1.0 - Xi1));
+    float phi = 2.0 * PI * Xi2;
 
-    return normalize(cos(phi) * sinTheta * tangent +
-                     sin(phi) * sinTheta * bitangent +
-                     cosTheta * normal);
+    float xs = sin(theta) * cos(phi);
+    float ys = cos(theta);
+    float zs = sin(theta) * sin(phi);
+
+    vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 tangentX = normalize(cross(up, N));
+    vec3 tangentY = cross(N, tangentX);
+
+    vec3 direction = tangentX * xs + tangentY * zs + N * ys;
+    return normalize(direction);
 }
 
-vec3 calculateDirectLighting(HitRecord hitRecord, vec3 V) {
-    vec3 Lo = vec3(0.0);
-    vec3 N = normalize(hitRecord.normal);
-
-    for (int i = 0; i < NUM_LIGHTS; ++i) {
-        Light light = lights[i];
-        vec3 L = normalize(light.position - hitRecord.position);
-        vec3 H = normalize(V + L);
-        float distance = length(light.position - hitRecord.position);
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance = light.color * light.intensity * attenuation;
-
-        // angles
-        float NdotL = max(dot(N, L), 0.0);
-        float NdotV = max(dot(N, V), 0.0);
-        float NdotH = max(dot(N, H), 0.0);
-        float VdotH = max(dot(V, H), 0.0);
-
-        // Fresnel (Schlick approximation)
-        vec3 F0 = mix(vec3(0.04), hitRecord.material.albedo, hitRecord.material.metallic);
-        vec3 F = F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0);
-
-        // Distribution GGX
-        float alpha = hitRecord.material.roughness * hitRecord.material.roughness;
-        float alpha2 = alpha * alpha;
-        float denom = (NdotH * NdotH) * (alpha2 - 1.0) + 1.0;
-        float D = alpha2 / (PI * denom * denom);
-
-        // Smith's method
-        float k = (hitRecord.material.roughness + 1.0);
-        k = (k * k) / 8.0;
-
-        float G_V = NdotV / (NdotV * (1.0 - k) + k);
-        float G_L = NdotL / (NdotL * (1.0 - k) + k);
-        float G = G_V * G_L;
-
-        // specular
-        vec3 specular = (D * G * F) / (4.0 * NdotV * NdotL + 0.001);
-
-        // Lambertien
-        vec3 kD = vec3(1.0) - F;
-        kD *= 1.0 - hitRecord.material.metallic;
-        vec3 diffuse = (hitRecord.material.albedo / PI) * kD;
-
-        // final contribution
-        vec3 finalColor = (diffuse + specular) * radiance * NdotL;
-
-        Lo += finalColor;
-    }
-
-    return Lo;
+vec3 fresnelSchlick(float cosTheta, vec3 F0) {
+    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
 }
 
-vec3 traceRay(Ray initialRay, float seed) {
-    vec3 accumulatedColor = vec3(0.0);
-    vec3 throughput = vec3(1.0);
-    Ray ray = initialRay;
+float DistributionGGX(vec3 N, vec3 H, float roughness) {
+    float a      = roughness * roughness;
+    float a2     = a * a;
+    float NdotH  = max(dot(N, H), 0.0);
+    float NdotH2 = NdotH * NdotH;
 
-    for (int depth = 0; depth < BOUNCES; depth++) {
-        float closestT = 1e30;
-        HitRecord closestHitRecord;
-        bool hit = false;
+    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
+    denom = PI * denom * denom;
 
-        // Check intersections with triangles
-        for (int j = 0; j < trianglesBuffer.triangles.length(); ++j) {
-            float t, u, v;
-            if (rayIntersectsTriangle(ray, trianglesBuffer.triangles[j], t, u, v)) {
-                if (t < closestT) {
-                    closestT = t;
-                    hit = true;
-                    closestHitRecord.position = ray.origin + t * ray.direction;
-                    closestHitRecord.normal = normalize(
-                        (1.0 - u - v) * trianglesBuffer.triangles[j].v0.normal +
-                        u * trianglesBuffer.triangles[j].v1.normal +
-                        v * trianglesBuffer.triangles[j].v2.normal
-                    );
-                    closestHitRecord.material = trianglesBuffer.triangles[j].material;
-                }
+    return a2 / denom;
+}
+
+float GeometrySchlickGGX(float NdotV, float roughness) {
+    float r = roughness + 1.0;
+    float k = (r * r) / 8.0;
+
+    float denom = NdotV * (1.0 - k) + k;
+
+    return NdotV / denom;
+}
+
+float GeometrySmith(vec3 N, vec3 V, vec3 L, float roughness) {
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotL = max(dot(N, L), 0.0);
+    float ggx2  = GeometrySchlickGGX(NdotV, roughness);
+    float ggx1  = GeometrySchlickGGX(NdotL, roughness);
+
+    return ggx1 * ggx2;
+}
+
+vec3 computeBRDF(Material material, vec3 N, vec3 V, vec3 L) {
+    vec3 H = normalize(V + L);
+
+    float NdotL = max(dot(N, L), 0.0);
+    float NdotV = max(dot(N, V), 0.0);
+    float NdotH = max(dot(N, H), 0.0);
+    float VdotH = max(dot(V, H), 0.0);
+
+    vec3 F0 = mix(vec3(0.04), material.albedo, material.metallic);
+    vec3 F = fresnelSchlick(VdotH, F0);
+
+    float D = DistributionGGX(N, H, material.roughness);
+    float G = GeometrySmith(N, V, L, material.roughness);
+
+    vec3 numerator = D * F * G;
+    float denominator = 4.0 * NdotV * NdotL + 0.001;
+    vec3 specular = numerator / denominator;
+
+    vec3 kD = vec3(1.0) - F;
+    kD *= 1.0 - material.metallic;
+
+    vec3 diffuse = kD * material.albedo / PI;
+
+    return diffuse + specular;
+}
+
+bool traceRay(Ray ray, out HitRecord hitRecord) {
+    float closestT = 1e20;
+    bool hitSomething = false;
+
+    for (int i = 0; i < sphereBuffer.spheres.length(); ++i) {
+        float t;
+        if (rayIntersectsSphere(ray, sphereBuffer.spheres[i], t)) {
+            if (t < closestT) {
+                closestT = t;
+                hitSomething = true;
+                hitRecord.position = ray.origin + t * ray.direction;
+                hitRecord.normal = normalize(hitRecord.position - sphereBuffer.spheres[i].center);
+                hitRecord.material = sphereBuffer.spheres[i].material;
             }
         }
-
-        // Check intersections with spheres
-        for (int k = 0; k < sphereBuffer.spheres.length(); ++k) {
-            float tSphere;
-            if (rayIntersectsSphere(ray, sphereBuffer.spheres[k], tSphere)) {
-                if (tSphere < closestT) {
-                    closestT = tSphere;
-                    hit = true;
-                    closestHitRecord.position = ray.origin + tSphere * ray.direction;
-                    closestHitRecord.normal = normalize(closestHitRecord.position - sphereBuffer.spheres[k].center);
-                    closestHitRecord.material = sphereBuffer.spheres[k].material;
-                }
-            }
-        }
-
-        if (!hit) {
-            accumulatedColor += throughput * vec3(0.0); // Background color
-            break;
-        }
-
-        vec3 N = normalize(closestHitRecord.normal);
-        vec3 V = normalize(-ray.direction);
-
-        // Add emission for the current hit
-        accumulatedColor += throughput * closestHitRecord.material.emission * closestHitRecord.material.emissionStrength;
-
-        // Direct lighting contribution
-        vec3 directLighting = calculateDirectLighting(closestHitRecord, V);
-        accumulatedColor += throughput * directLighting;
-
-        // Update throughput
-        throughput *= closestHitRecord.material.albedo;
-
-        // Generate a new direction
-        float rand1 = rand(fragUV.xy + vec2(float(depth), 0.0), seed);
-        float rand2 = rand(fragUV.xy + vec2(0.0, float(depth)), seed);
-        vec3 randomDir = randomHemisphereDirection(closestHitRecord.normal, rand1, rand2);
-        ray.origin = closestHitRecord.position + 0.001 * randomDir;
-        ray.direction = randomDir;
-
-        // Update seed for next bounce
-        seed += 1.0;
     }
 
-    return accumulatedColor;
-}
+    for (int i = 0; i < trianglesBuffer.triangles.length(); ++i) {
+        float t, u, v;
+        if (rayIntersectsTriangle(ray, trianglesBuffer.triangles[i], t, u, v)) {
+            if (t < closestT) {
+                closestT = t;
+                hitSomething = true;
+                hitRecord.position = ray.origin + t * ray.direction;
+                vec3 normal = normalize(
+                    (1.0 - u - v) * trianglesBuffer.triangles[i].v0.normal +
+                    u * trianglesBuffer.triangles[i].v1.normal +
+                    v * trianglesBuffer.triangles[i].v2.normal
+                );
+                hitRecord.normal = normal;
+                hitRecord.material = trianglesBuffer.triangles[i].material;
+            }
+        }
+    }
 
+    return hitSomething;
+}
 
 void main() {
-    vec3 accumulatedColor = vec3(0.0);
+    vec3 color = vec3(0.0);
 
-    for(int i = 0; i < SAMPLES; i++) {
-        float initialSeed = float(i);
-        Ray initialRay = getCameraRay(fragUV, i);
-        accumulatedColor += traceRay(initialRay, initialSeed);
+    for (int sampleIndex = 0; sampleIndex < SAMPLES; ++sampleIndex) {
+        Ray ray = getCameraRay(fragUV, sampleIndex);
+        vec3 throughput = vec3(1.0);
+
+        for (int bounce = 0; bounce < BOUNCES; ++bounce) {
+            HitRecord hitRecord;
+            if (traceRay(ray, hitRecord)) {
+                color += throughput * hitRecord.material.emission * hitRecord.material.emissionStrength;
+
+                vec3 N = normalize(hitRecord.normal);
+                vec3 V = normalize(-ray.direction);
+
+                int numLights = lights.length();
+                for (int i = 0; i < numLights; ++i) {
+                    Light light = lights[i];
+                    vec3 L = normalize(light.position - hitRecord.position);
+                    float distance = length(light.position - hitRecord.position);
+                    float attenuation = 1.0 / (distance * distance);
+
+                    Ray shadowRay;
+                    shadowRay.origin = hitRecord.position + N * 0.001;
+                    shadowRay.direction = L;
+
+                    HitRecord shadowHit;
+                    if (!traceRay(shadowRay, shadowHit) || length(shadowHit.position - hitRecord.position) > distance) {
+                        vec3 BRDF = computeBRDF(hitRecord.material, N, V, L);
+
+                        float NdotL = max(dot(N, L), 0.0);
+
+                        vec3 radiance = light.color * light.intensity * attenuation;
+                        color += throughput * BRDF * radiance * NdotL;
+                    }
+                }
+
+                vec3 randomDir = sampleHemisphere(N, float(sampleIndex * BOUNCES + bounce));
+
+                ray.origin = hitRecord.position + N * 0.001;
+                ray.direction = randomDir;
+
+                float NdotRandomDir = max(dot(N, randomDir), 0.0);
+                float pdf = NdotRandomDir / PI;
+
+                vec3 BRDF = computeBRDF(hitRecord.material, N, V, randomDir);
+
+                throughput *= BRDF * NdotRandomDir / pdf;
+            } else {
+                break;
+            }
+        }
     }
 
-    accumulatedColor /= float(SAMPLES);
-    accumulatedColor = pow(accumulatedColor, vec3(1.0 / 2.2)); //gamma correction
-    outColor = vec4(accumulatedColor, 1.0);
+    color /= float(SAMPLES);
+    color = pow(color, vec3(1.0 / 2.2));
+    outColor = vec4(color, 1.0);
 }
