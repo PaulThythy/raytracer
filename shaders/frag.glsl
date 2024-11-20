@@ -331,7 +331,7 @@ void main() {
     vec3 accumulatedColor = vec3(0.0);
 
     for(int i = 0; i < SAMPLES; i++) {
-        float initialSeed = sin(float(i) * pushConstants.uTime);
+        float initialSeed = float(i);
         Ray initialRay = getCameraRay(fragUV, i);
         accumulatedColor += traceRay(initialRay, initialSeed);
     }
