@@ -174,7 +174,7 @@ void VkRenderer::createData() {
         )
     };
 
-    Material mat({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f);
+    Material mat({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 1.0f, 0.2f, 1.0f);
     Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
     /*std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
     m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));*/
@@ -489,10 +489,18 @@ void VkRenderer::createGraphicsPipeline() {
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
+    //create push constants for uTime
+    VkPushConstantRange pushConstantRange = {};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(float);
+
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutInfo.setLayoutCount = 1;
     pipelineLayoutInfo.pSetLayouts = &m_descriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
     if (vkCreatePipelineLayout(m_device, &pipelineLayoutInfo, nullptr, &m_pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("failed to create pipeline layout!");
@@ -940,6 +948,9 @@ void VkRenderer::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t ima
     if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
         throw std::runtime_error("Failed to begin recording command buffer!");
     }
+
+    float uTime = m_deltaTime;
+    vkCmdPushConstants(commandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &uTime);
 
     // Begin render pass
     VkRenderPassBeginInfo renderPassInfo{};

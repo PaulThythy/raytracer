@@ -1,11 +1,17 @@
 #version 450
 
-#define SAMPLES 1
-#define BOUNCES 30
+#define SAMPLES 50
+#define BOUNCES 5
 #define PI 3.141592653589793238462643
 
-// From https://stackoverflow.com/questions/4200224/random-noise-functions-for-glsl
-float rand(vec2 co) {
+layout(push_constant) uniform PushConstants {
+    float uTime;
+    //add uViewportSize
+} pushConstants;
+
+// From https://github.com/asc-community/MxEngine
+float rand(vec2 co, float seed) {
+    co *= fract(seed * 12.343);
     return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
@@ -60,7 +66,7 @@ struct Light {
 
 // Create a list of lights
 Light lights[NUM_LIGHTS] = Light[](
-    Light(vec3(0.0, 0.0, 3.0), vec3(1.0, 1.0, 1.0), 1.0)
+    Light(vec3(0.0, 2.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0)
 );
 
 layout(location = 0) in vec2 fragUV;
@@ -88,9 +94,12 @@ Ray getCameraRay(vec2 uv, int sampleIndex) {
     // Convert UV coordinates from [0,1] to [-1,1].
     vec2 ndc = uv * 2.0 - 1.0;
 
+    float pixelScaleX = 2.0 / 1920.0;
+    float pixelScaleY = 2.0 / 1080.0;
+
     // Generate random offsets for anti-aliasing within the pixel
-    float randomOffsetX = (rand(vec2(float(sampleIndex), uv.x)) - 0.5) / (float(SAMPLES) * 600);
-    float randomOffsetY = (rand(vec2(float(sampleIndex), uv.y)) - 0.5) / (float(SAMPLES) * 600);
+    float randomOffsetX = (rand(vec2(float(sampleIndex), uv.x), sampleIndex) - 0.5) * pixelScaleX;
+    float randomOffsetY = (rand(vec2(float(sampleIndex), uv.y), sampleIndex) - 0.5) * pixelScaleY;
 
     // Apply random offsets to the UV coordinates
     ndc.x += randomOffsetX;
@@ -189,38 +198,60 @@ vec3 randomHemisphereDirection(vec3 normal, float rand1, float rand2) {
                      cosTheta * normal);
 }
 
-vec3 calculateDirectLighting(HitRecord hitRecord) {
+vec3 calculateDirectLighting(HitRecord hitRecord, vec3 V) {
     vec3 Lo = vec3(0.0);
     vec3 N = normalize(hitRecord.normal);
 
     for (int i = 0; i < NUM_LIGHTS; ++i) {
         Light light = lights[i];
         vec3 L = normalize(light.position - hitRecord.position);
-        vec3 H = normalize(L + normalize(-cameraUBO.position + hitRecord.position));
+        vec3 H = normalize(V + L);
         float distance = length(light.position - hitRecord.position);
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance = light.color * light.intensity * attenuation;
 
-        // Lambertian diffuse term
+        // Calcul des angles
         float NdotL = max(dot(N, L), 0.0);
-        vec3 diffuse = hitRecord.material.albedo * NdotL;
+        float NdotV = max(dot(N, V), 0.0);
+        float NdotH = max(dot(N, H), 0.0);
+        float VdotH = max(dot(V, H), 0.0);
 
-        // Specular term
-        vec3 F0 = vec3(0.04); // Default reflectance at normal incidence
-        F0 = mix(F0, hitRecord.material.albedo, hitRecord.material.metallic);
-        float NDF = max(dot(N, H), 0.0);
-        float G = max(dot(N, L), 0.0);
-        vec3 F = F0 + (1.0 - F0) * pow(1.0 - dot(H, L), 5.0);
+        // Fresnel (Schlick approximation)
+        vec3 F0 = mix(vec3(0.04), hitRecord.material.albedo, hitRecord.material.metallic);
+        vec3 F = F0 + (1.0 - F0) * pow(1.0 - VdotH, 5.0);
 
-        vec3 specular = (NDF * G * F) / (4.0 * NdotL * max(dot(N, L), 0.0) + 0.001);
+        // Distribution GGX
+        float alpha = hitRecord.material.roughness * hitRecord.material.roughness;
+        float alpha2 = alpha * alpha;
+        float denom = (NdotH * NdotH) * (alpha2 - 1.0) + 1.0;
+        float D = alpha2 / (PI * denom * denom);
 
-        Lo += (diffuse + specular) * radiance;
+        // Terme de géométrie (Smith's method)
+        float k = (hitRecord.material.roughness + 1.0);
+        k = (k * k) / 8.0;
+
+        float G_V = NdotV / (NdotV * (1.0 - k) + k);
+        float G_L = NdotL / (NdotL * (1.0 - k) + k);
+        float G = G_V * G_L;
+
+        // Calcul du terme spéculaire
+        vec3 specular = (D * G * F) / (4.0 * NdotV * NdotL + 0.001);
+
+        // Terme diffus Lambertien
+        vec3 kD = vec3(1.0) - F;
+        kD *= 1.0 - hitRecord.material.metallic;
+        vec3 diffuse = (hitRecord.material.albedo / PI) * kD;
+
+        // Contribution finale
+        vec3 finalColor = (diffuse + specular) * radiance * NdotL;
+
+        Lo += finalColor;
     }
 
     return Lo;
 }
 
-vec3 traceRay(Ray initialRay) {
+vec3 traceRay(Ray initialRay, float seed) {
     vec3 accumulatedColor = vec3(0.0);
     vec3 throughput = vec3(1.0);
     Ray ray = initialRay;
@@ -267,33 +298,41 @@ vec3 traceRay(Ray initialRay) {
             break;
         }
 
+        vec3 N = normalize(closestHitRecord.normal);
+        vec3 V = normalize(-ray.direction);
+
         // Add emission for the current hit
         accumulatedColor += throughput * closestHitRecord.material.emission * closestHitRecord.material.emissionStrength;
 
         // Direct lighting contribution
-        vec3 directLighting = calculateDirectLighting(closestHitRecord);
+        vec3 directLighting = calculateDirectLighting(closestHitRecord, V);
         accumulatedColor += throughput * directLighting;
 
         // Update throughput
         throughput *= closestHitRecord.material.albedo;
 
         // Generate a new direction
-        float rand1 = rand(fragUV.xy + vec2(float(depth), 0.0));
-        float rand2 = rand(fragUV.xy + vec2(0.0, float(depth)));
+        float rand1 = rand(fragUV.xy + vec2(float(depth), 0.0), seed);
+        float rand2 = rand(fragUV.xy + vec2(0.0, float(depth)), seed);
         vec3 randomDir = randomHemisphereDirection(closestHitRecord.normal, rand1, rand2);
         ray.origin = closestHitRecord.position + 0.001 * randomDir;
         ray.direction = randomDir;
+
+        // Update seed for next bounce
+        seed += 1.0;
     }
 
     return accumulatedColor;
 }
 
+
 void main() {
     vec3 accumulatedColor = vec3(0.0);
 
     for(int i = 0; i < SAMPLES; i++) {
-        Ray ray = getCameraRay(fragUV, i);
-        accumulatedColor += traceRay(ray);
+        float initialSeed = sin(float(i) * pushConstants.uTime);
+        Ray initialRay = getCameraRay(fragUV, i);
+        accumulatedColor += traceRay(initialRay, initialSeed);
     }
 
     accumulatedColor /= float(SAMPLES);

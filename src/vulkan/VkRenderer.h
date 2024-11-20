@@ -84,6 +84,8 @@ private:
 	VkBuffer m_sphereBuffer;
 	VkDeviceMemory m_sphereBufferMemory;
 
+	VkPushConstantRange m_pushConstantRange;
+
 	VkDescriptorPool m_descriptorPool;
 	VkDescriptorPool m_uiDescriptorPool;
 
