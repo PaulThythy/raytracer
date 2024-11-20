@@ -174,7 +174,7 @@ void VkRenderer::createData() {
         )
     };
 
-    Material mat({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 1.0f, 0.2f, 1.0f);
+    Material mat({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f);
     Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
     Material mat2({0.0, 1.0, 0.0}, {0.0f, 0.0f, 0.0f}, 0.0f, 1.0f, 0.0f);
     Sphere sphere2({0.0, 5.0, 1.0}, 1.0, mat2);

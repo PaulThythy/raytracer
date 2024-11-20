@@ -1,7 +1,7 @@
 #version 450
 
-#define SAMPLES 5
-#define BOUNCES 5
+#define SAMPLES 100
+#define BOUNCES 20
 #define PI 3.141592653589793238462643
 
 layout(push_constant) uniform PushConstants {
@@ -62,11 +62,14 @@ struct Light {
     float intensity;
 };
 
-#define NUM_LIGHTS 1
+#define NUM_LIGHTS 4
 
 // Create a list of lights
 Light lights[NUM_LIGHTS] = Light[](
-    Light(vec3(0.0, 2.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0)
+    Light(vec3(-10.0, 10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0),
+    Light(vec3(10.0, 10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0),
+    Light(vec3(10.0, -10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0),
+    Light(vec3(-10.0, -10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0)
 );
 
 layout(location = 0) in vec2 fragUV;
