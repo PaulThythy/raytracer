@@ -1,6 +1,6 @@
 #version 450
 
-#define SAMPLES 50
+#define SAMPLES 5
 #define BOUNCES 5
 #define PI 3.141592653589793238462643
 
@@ -94,6 +94,7 @@ Ray getCameraRay(vec2 uv, int sampleIndex) {
     // Convert UV coordinates from [0,1] to [-1,1].
     vec2 ndc = uv * 2.0 - 1.0;
 
+    //TODO use uViewportSize
     float pixelScaleX = 2.0 / 1920.0;
     float pixelScaleY = 2.0 / 1080.0;
 
@@ -210,7 +211,7 @@ vec3 calculateDirectLighting(HitRecord hitRecord, vec3 V) {
         float attenuation = 1.0 / (distance * distance);
         vec3 radiance = light.color * light.intensity * attenuation;
 
-        // Calcul des angles
+        // angles
         float NdotL = max(dot(N, L), 0.0);
         float NdotV = max(dot(N, V), 0.0);
         float NdotH = max(dot(N, H), 0.0);
@@ -226,7 +227,7 @@ vec3 calculateDirectLighting(HitRecord hitRecord, vec3 V) {
         float denom = (NdotH * NdotH) * (alpha2 - 1.0) + 1.0;
         float D = alpha2 / (PI * denom * denom);
 
-        // Terme de géométrie (Smith's method)
+        // Smith's method
         float k = (hitRecord.material.roughness + 1.0);
         k = (k * k) / 8.0;
 
@@ -234,15 +235,15 @@ vec3 calculateDirectLighting(HitRecord hitRecord, vec3 V) {
         float G_L = NdotL / (NdotL * (1.0 - k) + k);
         float G = G_V * G_L;
 
-        // Calcul du terme spéculaire
+        // specular
         vec3 specular = (D * G * F) / (4.0 * NdotV * NdotL + 0.001);
 
-        // Terme diffus Lambertien
+        // Lambertien
         vec3 kD = vec3(1.0) - F;
         kD *= 1.0 - hitRecord.material.metallic;
         vec3 diffuse = (hitRecord.material.albedo / PI) * kD;
 
-        // Contribution finale
+        // final contribution
         vec3 finalColor = (diffuse + specular) * radiance * NdotL;
 
         Lo += finalColor;
