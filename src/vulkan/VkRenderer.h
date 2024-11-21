@@ -25,6 +25,7 @@
 #include "math/Triangle.h"
 #include "math/Material.h"
 #include "math/Sphere.h"
+#include "math/Light.h"
 
 class VkRenderer {
 public:
@@ -83,6 +84,10 @@ private:
 	std::vector<Sphere> m_spheres;
 	VkBuffer m_sphereBuffer;
 	VkDeviceMemory m_sphereBufferMemory;
+
+	std::vector<Light> m_lights;
+	VkBuffer m_lightBuffer;
+	VkDeviceMemory m_lightBufferMemory;
 
 	VkPushConstantRange m_pushConstantRange;
 

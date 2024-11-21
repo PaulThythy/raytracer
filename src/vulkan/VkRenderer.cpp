@@ -78,6 +78,9 @@ void VkRenderer::cleanupVulkan() {
     vkDestroyBuffer(m_device, m_sphereBuffer, m_allocator);
     vkFreeMemory(m_device, m_sphereBufferMemory, m_allocator);
 
+    vkDestroyBuffer(m_device, m_lightBuffer, m_allocator);
+    vkFreeMemory(m_device, m_lightBufferMemory, m_allocator);
+
     for (size_t i = 0; i < m_uniformBuffers.size(); i++) {
         vkDestroyBuffer(m_device, m_uniformBuffers[i], m_allocator);
         vkFreeMemory(m_device, m_uniformBuffersMemory[i], m_allocator);
@@ -184,6 +187,13 @@ void VkRenderer::createData() {
         sphere, sphere2
     };
 
+    m_lights = {
+        Light({-10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
+        Light({10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
+        Light({10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
+        Light({-10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0)
+    };
+
     VkDeviceSize triangleBufferSize;
 
     if (m_triangles.empty()) {
@@ -229,6 +239,28 @@ void VkRenderer::createData() {
         memcpy(data, m_spheres.data(), static_cast<size_t>(sphereBufferSize));
         vkUnmapMemory(m_device, m_sphereBufferMemory);
     }
+
+    VkDeviceSize lightBufferSize;
+
+    if (m_lights.empty()) {
+        lightBufferSize = sizeof(Light);
+        createBuffer(lightBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_lightBuffer, m_lightBufferMemory);
+
+        void* data;
+        vkMapMemory(m_device, m_lightBufferMemory, 0, lightBufferSize, 0, &data);
+        memset(data, 0, static_cast<size_t>(lightBufferSize));
+        vkUnmapMemory(m_device, m_lightBufferMemory);
+    }
+    else {
+        lightBufferSize = sizeof(Light) * m_lights.size();
+
+        createBuffer(lightBufferSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_lightBuffer, m_lightBufferMemory);
+
+        void* data;
+        vkMapMemory(m_device, m_lightBufferMemory, 0, lightBufferSize, 0, &data);
+        memcpy(data, m_lights.data(), static_cast<size_t>(lightBufferSize));
+        vkUnmapMemory(m_device, m_lightBufferMemory);
+    }
 }
 
 void VkRenderer::createDescriptorSetLayout() {
@@ -256,7 +288,15 @@ void VkRenderer::createDescriptorSetLayout() {
     sphereBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
     sphereBufferLayoutBinding.pImmutableSamplers = nullptr;
 
-    std::array<VkDescriptorSetLayoutBinding, 3> bindings = {uboLayoutBinding, triangleBufferLayoutBinding, sphereBufferLayoutBinding };
+    //SSBO for lights
+    VkDescriptorSetLayoutBinding lightBufferLayoutBinding{};
+    lightBufferLayoutBinding.binding = 3;
+    lightBufferLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    lightBufferLayoutBinding.descriptorCount = 1;
+    lightBufferLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    lightBufferLayoutBinding.pImmutableSamplers = nullptr;
+
+    std::array<VkDescriptorSetLayoutBinding, 4> bindings = {uboLayoutBinding, triangleBufferLayoutBinding, sphereBufferLayoutBinding, lightBufferLayoutBinding };
 
     VkDescriptorSetLayoutCreateInfo layoutInfo{};
     layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -286,7 +326,7 @@ void VkRenderer::createDescriptorSets() {
 
     // For each Descriptor Set, link the corresponding uniform buffer
     for (size_t i = 0; i < m_swapchainImages.size(); i++) {
-        std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+        std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
         VkDescriptorBufferInfo bufferInfo{};
         bufferInfo.buffer = m_uniformBuffers[i]; 
@@ -327,12 +367,25 @@ void VkRenderer::createDescriptorSets() {
         descriptorWrites[2].descriptorCount = 1;
         descriptorWrites[2].pBufferInfo = &sphereBufferInfo;
 
+        VkDescriptorBufferInfo lightBufferInfo{};
+        lightBufferInfo.buffer = m_lightBuffer;
+        lightBufferInfo.offset = 0;
+        lightBufferInfo.range = m_lights.empty() ? sizeof(Light) : sizeof(Light) * m_lights.size();
+
+        descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        descriptorWrites[3].dstSet = m_descriptorSets[i];
+        descriptorWrites[3].dstBinding = 3;
+        descriptorWrites[3].dstArrayElement = 0;
+        descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        descriptorWrites[3].descriptorCount = 1;
+        descriptorWrites[3].pBufferInfo = &lightBufferInfo;
+
         vkUpdateDescriptorSets(m_device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
 
 void VkRenderer::createDescriptorPool() {
-    std::array<VkDescriptorPoolSize, 3> poolSizes{};
+    std::array<VkDescriptorPoolSize, 4> poolSizes{};
 
     //for camera
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -345,6 +398,10 @@ void VkRenderer::createDescriptorPool() {
     //for spheres
     poolSizes[2].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     poolSizes[2].descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
+
+    //for lights
+    poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSizes[3].descriptorCount = static_cast<uint32_t>(m_swapchainImages.size());
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;

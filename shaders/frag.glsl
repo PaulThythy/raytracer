@@ -1,6 +1,6 @@
 #version 450
 
-#define SAMPLES 100
+#define SAMPLES 1
 #define BOUNCES 20
 #define PI 3.141592653589793238462643
 
@@ -62,15 +62,9 @@ struct Light {
     float intensity;
 };
 
-#define NUM_LIGHTS 4
-
-// Create a list of lights
-Light lights[NUM_LIGHTS] = Light[](
-    Light(vec3(-10.0, 10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0),
-    Light(vec3(10.0, 10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0),
-    Light(vec3(10.0, -10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0),
-    Light(vec3(-10.0, -10.0, 2.0), vec3(1.0, 1.0, 1.0), 1.0)
-);
+layout(std140, set = 0, binding = 3) buffer Lights {
+    Light lights[];
+} lightBuffer;
 
 layout(location = 0) in vec2 fragUV;
 
@@ -321,9 +315,9 @@ void main() {
                 vec3 N = normalize(hitRecord.normal);
                 vec3 V = normalize(-ray.direction);
 
-                int numLights = lights.length();
+                int numLights = lightBuffer.lights.length();
                 for (int i = 0; i < numLights; ++i) {
-                    Light light = lights[i];
+                    Light light = lightBuffer.lights[i];
                     vec3 L = normalize(light.position - hitRecord.position);
                     float distance = length(light.position - hitRecord.position);
                     float attenuation = 1.0 / (distance * distance);
@@ -361,6 +355,6 @@ void main() {
     }
 
     color /= float(SAMPLES);
-    color = pow(color, vec3(1.0 / 2.2));
+    color = pow(color, vec3(1.0 / 1.6));
     outColor = vec4(color, 1.0);
 }
