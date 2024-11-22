@@ -1,6 +1,6 @@
 #version 450
 
-#define SAMPLES 1
+#define SAMPLES 10
 #define BOUNCES 20
 #define PI 3.141592653589793238462643
 
@@ -184,8 +184,8 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, out float t) {
 }
 
 vec3 sampleHemisphere(vec3 N, float seed) {
-    float Xi1 = rand(fragUV, seed);
-    float Xi2 = rand(fragUV, seed);
+    float Xi1 = rand(fragUV + vec2(0.0, seed), seed);
+    float Xi2 = rand(fragUV + vec2(seed, 0.0), seed);
 
     float theta = acos(sqrt(1.0 - Xi1));
     float phi = 2.0 * PI * Xi2;
@@ -355,6 +355,6 @@ void main() {
     }
 
     color /= float(SAMPLES);
-    color = pow(color, vec3(1.0 / 1.6));
+    color = pow(color, vec3(1.0 / 2.2));
     outColor = vec4(color, 1.0);
 }
