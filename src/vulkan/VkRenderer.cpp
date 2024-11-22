@@ -2,8 +2,8 @@
 
 VkRenderer::VkRenderer() : m_camera
 (
-    glm::vec3(6.0f, 6.0f, 6.0f), 
-    glm::vec3(0.0f, 0.0f, 0.0f), 
+    glm::vec3(0.0f, 4.0f, 1.0f), 
+    glm::vec3(0.0f, 0.0f, 1.0f), 
     glm::vec3(0.0f, 0.0f, -1.0f), 
     45.0f, 
     static_cast<float>(Config::INIT_WINDOW_WIDTH)/static_cast<float>(Config::INIT_WINDOW_HEIGHT), 
@@ -162,36 +162,99 @@ bool VkRenderer::checkValidationLayerSupport() {
 }
 
 void VkRenderer::createData() {
-    glm::vec3 planeNormal(0.0f, 0.0f, 1.0f); // Assuming plane is in XY plane
+    //cornell box
+    Material whiteMat({1.0f, 1.0f, 1.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f, 0.0f);
+    Material leftWall({1.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f, 0.0f);
+    Material rightWall({0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f, 0.0f);
+    Material emissive({1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, 0.5f, 0.0f, 0.0f);
 
     m_triangles = {
-       Triangle(Vertex3D({-10.0f, 10.0f, 0.0f}, planeNormal),
-                 Vertex3D({10.0f, 10.0f, 0.0f}, planeNormal),
-                 Vertex3D({10.0f, -10.0f, 0.0f}, planeNormal),
-                 Material({0.4, 0.4, 0.4}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 0.0f)
+        //ground
+        Triangle(Vertex3D({-2.0f, 2.0f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+                 Vertex3D({2.0f, 2.0f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+                 Vertex3D({-2.0f, -2.0f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+                 whiteMat
         ),
-        Triangle(Vertex3D({10.0f, -10.0f, 0.0f}, planeNormal),
-                 Vertex3D({-10.0f, -10.0f, 0.0f}, planeNormal),
-                 Vertex3D({-10.0f, 10.0f, 0.0f}, planeNormal),
-                 Material({0.4, 0.4, 0.4}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 0.0f)
+        Triangle(Vertex3D({-2.0f, -2.0f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+                 Vertex3D({2.0f, 2.0f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+                 Vertex3D({2.0f, -2.0f, 0.0f}, {0.0f, 0.0f, 1.0f}),
+                 whiteMat
+        ),
+        //back wall
+        Triangle(Vertex3D({2.0f, -2.0f, 0.0f}, {0.0f, 1.0f, 0.0f}),
+                 Vertex3D({2.0f, -2.0f, 2.0f}, {0.0f, 1.0f, 0.0f}),
+                 Vertex3D({-2.0f, -2.0f, 0.0f}, {0.0f, 1.0f, 0.0f}),
+                 whiteMat
+        ),
+        Triangle(Vertex3D({-2.0f, -2.0f, 0.0f}, {0.0f, 1.0f, 0.0f}),
+                 Vertex3D({2.0f, -2.0f, 2.0f}, {0.0f, 1.0f, 0.0f}),
+                 Vertex3D({-2.0f, -2.0f, 2.0f}, {0.0f, 1.0f, 0.0f}),
+                 whiteMat
+        ),
+        //left wall
+        Triangle(Vertex3D({-2.0f, 2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}),
+                 Vertex3D({-2.0f, -2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}),
+                 Vertex3D({-2.0f, -2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}),
+                 leftWall
+        ),
+        Triangle(Vertex3D({-2.0f, 2.0f, 0.0f}, {1.0f, 0.0f, 0.0f}),
+                 Vertex3D({-2.0f, -2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}),
+                 Vertex3D({-2.0f, 2.0f, 2.0f}, {1.0f, 0.0f, 0.0f}),
+                 leftWall
+        ),
+        //right wall
+        Triangle(Vertex3D({2.0f, -2.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}),
+                 Vertex3D({2.0f, 2.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}),
+                 Vertex3D({2.0f, -2.0f, 2.0f}, {-1.0f, 0.0f, 0.0f}),
+                 rightWall
+        ),
+        Triangle(Vertex3D({2.0f, -2.0f, 2.0f}, {-1.0f, 0.0f, 0.0f}),
+                 Vertex3D({2.0f, 2.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}),
+                 Vertex3D({2.0f, 2.0f, 2.0f}, {-1.0f, 0.0f, 0.0f}),
+                 rightWall
+        ),
+        //ceiling
+        Triangle(Vertex3D({-2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({-2.0f, -2.0f, 2.0f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, -1.0f}),
+                 whiteMat
+        ),
+        Triangle(Vertex3D({-2.0f, -2.0f, 2.0f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({2.0f, 2.0f, 2.0f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({2.0f, -2.0f, 2.0f}, {0.0f, 0.0f, -1.0f}),
+                 whiteMat
+        ),
+        //light
+        Triangle(Vertex3D({-1.0f, 1.0f, 1.99f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({-1.0f, -1.0f, 1.99f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({1.0f, 1.0f, 1.99f}, {0.0f, 0.0f, -1.0f}),
+                 emissive
+        ),
+        Triangle(Vertex3D({-1.0f, -1.0f, 1.99f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({1.0f, 1.0f, 1.99f}, {0.0f, 0.0f, -1.0f}),
+                 Vertex3D({1.0f, -1.0f, 1.99f}, {0.0f, 0.0f, -1.0f}),
+                 emissive
         )
     };
 
-    Material mat({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f);
-    Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
-    Material mat2({0.0, 1.0, 0.0}, {1.0f, 1.0f, 1.0f}, 0.0f, 0.0f, 0.0f);
-    Sphere sphere2({0.0, 5.0, 1.0}, 1.0, mat2);
+    Material gold({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.1f, 1.0f);
+    Sphere sphere({-1.0, 0.0, 0.2}, 0.2, gold);
+    Material silver({0.7, 0.7, 0.7}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.1f, 1.0f);
+    Sphere sphere2({0.0, 0.0, 0.2}, 0.2, silver);
+    Material flatBlue({0.0, 0.0, 1.0}, {0.0f, 0.0f, 0.0f}, 0.0f, 1.0f, 0.0f);
+    Sphere sphere3({1.0, 0.0, 0.2}, 0.2, flatBlue);
     /*std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
     m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));*/
     m_spheres = {
-        sphere, sphere2
+        sphere, sphere2, sphere3
     };
 
     m_lights = {
-        Light({-10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
+        /*Light({-10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
         Light({10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
         Light({10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
-        Light({-10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0)
+        Light({-10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0)*/
+        //Light({0.0, 0.0, 1.99}, {1.0, 1.0, 1.0}, 5.0)
     };
 
     VkDeviceSize triangleBufferSize;

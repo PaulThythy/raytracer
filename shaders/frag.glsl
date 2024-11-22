@@ -1,7 +1,7 @@
 #version 450
 
 #define SAMPLES 10
-#define BOUNCES 5
+#define BOUNCES 8
 #define PI 3.141592653589793238462643
 
 layout(push_constant) uniform PushConstants {
@@ -355,6 +355,6 @@ void main() {
     }
 
     color /= float(SAMPLES);
-    color = pow(color, vec3(1.0 / 2.2));
+    color = pow(color, vec3(1.0 / 2.6));
     outColor = vec4(color, 1.0);
 }
