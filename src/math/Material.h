@@ -9,6 +9,10 @@ struct Material {
     alignas(4) float m_emissionStrength;
     alignas(4) float m_roughness;
     alignas(4) float m_metallic;
+    //TODO add
+    //alignas(4) float m_ior;
+    //alignas(4) float m_transparency;
+    //alignas(16) glm::vec3 m_transparencyColor;
 };
 
 #endif // MATERIAL_H
