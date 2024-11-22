@@ -179,7 +179,7 @@ void VkRenderer::createData() {
 
     Material mat({1.0f, 0.9f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.2f, 1.0f);
     Sphere sphere({0.0, 0.0, 1.0}, 1.0, mat);
-    Material mat2({0.0, 1.0, 0.0}, {1.0f, 1.0f, 1.0f}, 1.0f, 0.0f, 0.0f);
+    Material mat2({0.0, 1.0, 0.0}, {1.0f, 1.0f, 1.0f}, 0.0f, 0.0f, 0.0f);
     Sphere sphere2({0.0, 5.0, 1.0}, 1.0, mat2);
     /*std::vector<Triangle> sphereGeom = sphere.sphereGeometry(5, 5);
     m_triangles.insert(std::end(m_triangles), std::begin(sphereGeom), std::end(sphereGeom));*/
@@ -188,10 +188,10 @@ void VkRenderer::createData() {
     };
 
     m_lights = {
-        /*Light({-10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
+        Light({-10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
         Light({10.0, 10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
         Light({10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0),
-        Light({-10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0)*/
+        Light({-10.0, -10.0, 2.0}, {1.0, 1.0, 1.0}, 1.0)
     };
 
     VkDeviceSize triangleBufferSize;

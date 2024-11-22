@@ -1,7 +1,7 @@
 #version 450
 
-#define SAMPLES 10
-#define BOUNCES 20
+#define SAMPLES 20
+#define BOUNCES 5
 #define PI 3.141592653589793238462643
 
 layout(push_constant) uniform PushConstants {
