@@ -11,8 +11,7 @@ layout(push_constant) uniform PushConstants {
 
 // From https://github.com/asc-community/MxEngine
 float rand(vec2 co, float seed) {
-    co *= fract(seed * 12.343);
-    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    return fract(sin(dot(co.xy + seed, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
 struct Ray {
@@ -96,8 +95,8 @@ Ray getCameraRay(vec2 uv, int sampleIndex) {
     float pixelScaleY = 2.0 / 1080.0;
 
     // Generate random offsets for anti-aliasing within the pixel
-    float randomOffsetX = (rand(vec2(float(sampleIndex), uv.x), sampleIndex) - 0.5) * pixelScaleX;
-    float randomOffsetY = (rand(vec2(float(sampleIndex), uv.y), sampleIndex) - 0.5) * pixelScaleY;
+    float randomOffsetX = (rand(vec2(uv.x, float(sampleIndex * 31)), BOUNCES) - 0.5) * pixelScaleX;
+    float randomOffsetY = (rand(vec2(uv.y, float(sampleIndex * 47)), BOUNCES) - 0.5) * pixelScaleY;
 
     // Apply random offsets to the UV coordinates
     ndc.x += randomOffsetX;
@@ -184,8 +183,9 @@ bool rayIntersectsSphere(Ray ray, Sphere sphere, out float t) {
 }
 
 vec3 sampleHemisphere(vec3 N, float seed) {
-    float Xi1 = rand(fragUV + vec2(0.0, seed), seed);
-    float Xi2 = rand(fragUV + vec2(seed, 0.0), seed);
+    float Xi1 = rand(fragUV * vec2(12.9898, 78.233) + vec2(sin(seed), cos(seed)), BOUNCES);
+    float Xi2 = rand(fragUV * vec2(78.233, 12.9898) + vec2(cos(seed), sin(seed)), BOUNCES);
+
 
     float theta = acos(sqrt(1.0 - Xi1));
     float phi = 2.0 * PI * Xi2;
